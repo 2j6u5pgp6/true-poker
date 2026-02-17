@@ -256,3 +256,67 @@
 
 </body>
 </html>
+// ... (保留之前的 CSS 與 HTML 結構，替換 JavaScript 中的 getHandType 和相關邏輯)
+
+function getHandType(cards) {
+    const len = cards.length;
+    // 將數字排序方便判斷
+    const sortedRanks = cards.map(c => c.rank).sort((a, b) => a - b);
+    
+    // 統計各數字出現次數
+    const counts = {};
+    cards.forEach(c => counts[c.rank] = (counts[c.rank] || 0) + 1);
+    const countVals = Object.values(counts);
+
+    if (len === 1) return 'single';
+    if (len === 2 && countVals.includes(2)) return 'pair';
+    if (len === 3 && countVals.includes(3)) return 'triple';
+    
+    if (len === 5) {
+        // 鐵支 (4+1)
+        if (countVals.includes(4)) return 'fourkind';
+        
+        // 葫蘆 (3+2)
+        if (countVals.includes(3) && countVals.includes(2)) return 'fullhouse';
+        
+        // 順子 (數字連續)
+        let isStraight = true;
+        for (let i = 0; i < 4; i++) {
+            if (sortedRanks[i + 1] !== sortedRanks[i] + 1) {
+                isStraight = false;
+                break;
+            }
+        }
+        if (isStraight) return 'straight';
+    }
+    
+    return null; // 若不符合以上則回傳無效
+}
+
+// 獲取牌型中的「關鍵比較值」
+function getKeyRank(cards, type) {
+    const counts = {};
+    cards.forEach(c => counts[c.rank] = (counts[c.rank] || 0) + 1);
+    
+    if (type === 'single' || type === 'pair' || type === 'triple') return cards[0].rank;
+    if (type === 'straight') return Math.max(...cards.map(c => c.rank));
+    if (type === 'fullhouse' || type === 'fourkind') {
+        // 找出張數最多的那個數字 (葫蘆找3張的，鐵支找4張的)
+        return parseInt(Object.keys(counts).find(key => counts[key] >= 3));
+    }
+    return cards[0].rank;
+}
+
+function checkReality(selectedCards) {
+    const currentKey = getKeyRank(selectedCards, currentHandType);
+    const lastKey = getKeyRank(lastHand, currentHandType);
+    
+    if (currentRule === 'proximity') {
+        // 比誰更接近真實
+        return Math.abs(currentKey - realityCard.rank) < Math.abs(lastKey - realityCard.rank);
+    } else {
+        // 花色一致：檢查出牌中是否包含真實花色，且數字更大
+        const matchSuit = selectedCards.some(c => c.suit === realityCard.suit);
+        return matchSuit && currentKey > lastKey;
+    }
+}
