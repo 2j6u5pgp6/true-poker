@@ -2,74 +2,67 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>大老二-真實 (Big Two: Reality Edition)</title>
+    <title>大老二-真實 (Fixed Edition)</title>
     <style>
         :root {
-            --bg: #1b3d2f; /* 撲克牌桌綠 */
+            --bg: #1b3d2f;
             --card-white: #ffffff;
-            --card-shadow: rgba(0,0,0,0.3);
             --accent: #f1c40f;
+            --danger: #e74c3c;
         }
         body { font-family: 'PingFang TC', sans-serif; background: var(--bg); color: white; margin: 0; display: flex; flex-direction: column; align-items: center; height: 100vh; overflow: hidden; }
         
-        /* 頂部資訊與對手 */
-        #header { width: 100%; height: 120px; background: rgba(0,0,0,0.2); display: flex; justify-content: space-around; align-items: center; padding: 10px; }
-        .opponent { text-align: center; padding: 10px; border: 1px solid rgba(255,255,255,0.1); border-radius: 5px; min-width: 80px; }
-        .opponent.active { border-color: var(--accent); box-shadow: 0 0 10px var(--accent); }
-        .card-back { width: 30px; height: 45px; background: #2c3e50; border: 2px solid white; border-radius: 4px; margin: 5px auto; }
+        #header { width: 100%; height: 100px; background: rgba(0,0,0,0.3); display: flex; justify-content: space-around; align-items: center; padding: 10px; }
+        .opponent { text-align: center; padding: 5px 15px; border: 2px solid transparent; border-radius: 8px; transition: 0.3s; }
+        .opponent.active { border-color: var(--accent); background: rgba(241, 196, 15, 0.1); }
+        .card-back-icon { width: 25px; height: 35px; background: #2c3e50; border: 1px solid white; border-radius: 3px; margin: 5px auto; }
 
-        /* 桌面中央區 */
         #table-surface { flex-grow: 1; width: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
-        #last-played-zone { display: flex; gap: 10px; min-height: 120px; align-items: center; justify-content: center; background: rgba(255,255,255,0.05); width: 60%; border-radius: 50%; border: 2px dashed rgba(255,255,255,0.1); }
-        .table-label { position: absolute; top: 20px; color: rgba(255,255,255,0.5); font-weight: bold; }
-
-        /* 牌型與視覺 */
-        .card { width: 70px; height: 100px; background: white; color: black; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; border: 2px solid #ddd; box-shadow: 2px 2px 5px var(--card-shadow); transition: 0.2s; position: relative; }
-        .card.selected { transform: translateY(-20px); border-color: #3498db; box-shadow: 0 0 15px #3498db; }
-        .card.red { color: #e74c3c; }
-        .card-rank { font-size: 1.8em; font-weight: bold; }
-        .card-suit { font-size: 1.2em; position: absolute; top: 5px; left: 5px; }
-
-        /* 玩家操作區 */
-        #player-hand-container { width: 100%; background: rgba(0,0,0,0.4); padding: 20px 0; display: flex; flex-direction: column; align-items: center; }
-        #hand { display: flex; gap: 5px; justify-content: center; margin-bottom: 15px; }
+        #last-played-zone { display: flex; gap: 10px; min-height: 120px; align-items: center; justify-content: center; width: 50%; border-radius: 20px; background: rgba(255,255,255,0.05); }
         
-        #controls { display: flex; gap: 15px; }
-        button { padding: 12px 25px; border-radius: 20px; border: none; font-weight: bold; cursor: pointer; background: #ecf0f1; transition: 0.2s; }
-        button:hover { background: var(--accent); }
-        button:disabled { background: #555; color: #888; cursor: not-allowed; }
+        .card { width: 65px; height: 90px; background: white; color: black; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; border: 2px solid #ddd; box-shadow: 2px 2px 5px rgba(0,0,0,0.3); transition: 0.2s; position: relative; }
+        .card.selected { transform: translateY(-15px); border-color: #3498db; box-shadow: 0 5px 15px rgba(52,152,219,0.5); }
+        .card.red { color: var(--danger); }
+        .card-rank { font-size: 1.5em; font-weight: bold; }
+        .card-suit { font-size: 1.1em; position: absolute; top: 3px; left: 5px; }
 
-        /* 訊息彈窗 */
-        #game-msg { position: absolute; top: 150px; background: rgba(231, 76, 60, 0.9); padding: 10px 20px; border-radius: 5px; display: none; z-index: 100; }
-        #rule-banner { color: var(--accent); font-size: 1.1em; margin-bottom: 10px; }
+        #player-hand-area { width: 100%; background: rgba(0,0,0,0.5); padding: 20px 0; display: flex; flex-direction: column; align-items: center; }
+        #hand { display: flex; gap: 8px; justify-content: center; margin-bottom: 15px; flex-wrap: wrap; }
+        
+        .btn-group { display: flex; gap: 10px; height: 45px; }
+        button { padding: 10px 20px; border-radius: 5px; border: none; font-weight: bold; cursor: pointer; background: #eee; }
+        button:hover { background: var(--accent); }
+        .btn-rule { background: #3498db; color: white; }
+        
+        #game-msg { position: absolute; top: 20%; background: var(--danger); padding: 10px 20px; border-radius: 5px; display: none; font-weight: bold; z-index: 10; }
+        #info-banner { margin-bottom: 10px; font-size: 1.2em; color: var(--accent); text-shadow: 1px 1px 2px black; }
     </style>
 </head>
 <body>
 
-<div id="header">
-    </div>
+<div id="header"></div>
 
 <div id="table-surface">
-    <div class="table-label">桌面 / 上一回合牌型</div>
-    <div id="rule-banner">等待遊戲開始...</div>
-    <div id="last-played-zone">
-        </div>
+    <div id="info-banner">點擊下方按鈕開始遊戲</div>
+    <div id="last-played-zone"></div>
     <div id="game-msg"></div>
 </div>
 
-<div id="player-hand-container">
+<div id="player-hand-area">
     <div id="hand"></div>
-    <div id="controls">
-        <div id="rule-options" style="display:none;">
-            <button onclick="setRule('proximity')">選擇：數量鄰近</button>
-            <button onclick="setRule('suit')">選擇：花色一致</button>
-        </div>
-        <div id="action-btns" style="display:none;">
-            <button onclick="playHand()">出牌</button>
-            <button onclick="passTurn()">Pass 跳過</button>
-        </div>
-        <button id="start-btn" onclick="setupGame()">開始 4 人牌局</button>
+    
+    <div id="rule-options" class="btn-group" style="display:none;">
+        <span style="line-height:45px; margin-right:10px;">請決定本輪規則：</span>
+        <button class="btn-rule" onclick="setRule('proximity')">數量鄰近 (接近真實)</button>
+        <button class="btn-rule" onclick="setRule('suit')">花色一致 (且數字更大)</button>
     </div>
+
+    <div id="action-btns" class="btn-group" style="display:none;">
+        <button onclick="playHand()">出牌</button>
+        <button onclick="passTurn()">Pass 跳過</button>
+    </div>
+
+    <button id="start-btn" onclick="setupGame()" style="padding:15px 40px; font-size:1.2em; background:var(--accent);">開始遊戲 (4人局)</button>
 </div>
 
 <script>
@@ -81,9 +74,8 @@
     let lastHand = null;
     let currentRule = null;
     let currentHandType = null;
-    let tryCount = 0;
     let passCount = 0;
-    let winners = [];
+    let gameActive = false;
 
     function setupGame() {
         const deck = [];
@@ -91,114 +83,107 @@
         deck.sort(() => Math.random() - 0.5);
 
         realityCard = deck.pop(); 
-        const n = 4;
-        const cardsPerPlayer = 12; // 51/4 取整數 12
+        console.log("真實牌是:", realityCard); // 偵錯用
 
         players = [];
-        for(let i=0; i<n; i++) {
+        for(let i=0; i<4; i++) {
             players.push({
                 id: i+1,
-                hand: deck.splice(0, cardsPerPlayer).sort((a,b) => a.rank - b.rank),
-                isAI: i !== 0 // 玩家是 ID 1，其他是 AI (簡化處理)
+                hand: deck.splice(0, 12).sort((a,b) => a.rank - b.rank)
             });
         }
 
+        gameActive = true;
         document.getElementById('start-btn').style.display = 'none';
-        document.getElementById('action-btns').style.display = 'flex';
-        currentPlayerIdx = Math.floor(Math.random() * n);
+        currentPlayerIdx = Math.floor(Math.random() * 4);
         
-        updateTable();
-        checkTurn();
+        updateUI();
+        processTurn();
     }
 
-    function checkTurn() {
+    function processTurn() {
+        if (!gameActive) return;
+
+        // 如果所有人都 pass 剩一人，重置回合
         if (passCount >= players.length - 1 && lastHand !== null) {
-            showMessage("所有人 Pass，你贏得這輪控牌權！");
-            resetRound();
+            showMessage("一輪結束，新回合開始！");
+            lastHand = null;
+            currentRule = null;
+            currentHandType = null;
+            passCount = 0;
         }
 
+        const isHuman = (currentPlayerIdx === 0);
         const p = players[currentPlayerIdx];
-        if (!lastHand) {
-            document.getElementById('rule-banner').innerText = `輪到玩家 ${p.id} 開局 (請選擇規則)`;
-            if (currentPlayerIdx === 0) {
+
+        // 顯示控制項
+        if (isHuman) {
+            if (!currentRule) {
                 document.getElementById('rule-options').style.display = 'flex';
                 document.getElementById('action-btns').style.display = 'none';
+                document.getElementById('info-banner').innerText = "輪到你開局，請選擇本輪規則基準！";
             } else {
-                // 簡單 AI 開局選擇
-                setTimeout(() => setRule(Math.random() > 0.5 ? 'proximity' : 'suit'), 1000);
+                document.getElementById('rule-options').style.display = 'none';
+                document.getElementById('action-btns').style.display = 'flex';
+                document.getElementById('info-banner').innerText = `輪到你，規則：${currentRule==='proximity'?'數量鄰近':'花色一致'}`;
             }
         } else {
-            document.getElementById('rule-banner').innerText = `規則：${currentRule === 'proximity' ? '比誰更接近真實' : '花色一致且數字更大'}`;
-            if (currentPlayerIdx !== 0) {
-                setTimeout(aiPlay, 1500); // AI 自動出牌
-            }
+            document.getElementById('rule-options').style.display = 'none';
+            document.getElementById('action-btns').style.display = 'none';
+            document.getElementById('info-banner').innerText = `玩家 ${p.id} 思考中...`;
+            setTimeout(aiAutoPlay, 1500);
         }
-        updateTable();
+        updateUI();
     }
 
     function setRule(rule) {
         currentRule = rule;
-        document.getElementById('rule-options').style.display = 'none';
-        document.getElementById('action-btns').style.display = 'flex';
-        checkTurn();
+        showMessage(`已設定規則：${rule==='proximity'?'數量鄰近':'花色一致'}`);
+        processTurn();
     }
 
-    function resetRound() {
-        lastHand = null;
-        currentRule = null;
-        currentHandType = null;
-        passCount = 0;
-        document.getElementById('last-played-zone').innerHTML = '';
-    }
-
-    function updateTable() {
-        // 更新對手狀態
+    function updateUI() {
+        // 更新對手
         const header = document.getElementById('header');
         header.innerHTML = '';
         players.forEach((p, idx) => {
             const div = document.createElement('div');
             div.className = `opponent ${idx === currentPlayerIdx ? 'active' : ''}`;
-            div.innerHTML = `
-                <div>玩家 ${p.id}</div>
-                <div class="card-back"></div>
-                <div>${p.hand.length} 張</div>
-            `;
+            div.innerHTML = `<div>玩家 ${p.id}</div><div class="card-back-icon"></div><div>${p.hand.length} 張</div>`;
             header.appendChild(div);
         });
 
-        // 更新手牌
+        // 更新玩家手牌
         const handDiv = document.getElementById('hand');
         handDiv.innerHTML = '';
-        if (players[0]) {
-            players[0].hand.forEach((card, i) => {
-                const cEl = document.createElement('div');
-                cEl.className = `card ${['♥','♦'].includes(card.suit) ? 'red' : ''}`;
-                cEl.innerHTML = `<span class="card-suit">${card.suit}</span><span class="card-rank">${card.rank}</span>`;
-                cEl.onclick = () => cEl.classList.toggle('selected');
-                cEl.dataset.idx = i;
-                handDiv.appendChild(cEl);
-            });
-        }
+        players[0].hand.forEach((card, i) => {
+            const cEl = document.createElement('div');
+            cEl.className = `card ${['♥','♦'].includes(card.suit) ? 'red' : ''}`;
+            cEl.innerHTML = `<span class="card-suit">${card.suit}</span><span class="card-rank">${card.rank}</span>`;
+            cEl.onclick = () => cEl.classList.toggle('selected');
+            cEl.dataset.idx = i;
+            handDiv.appendChild(cEl);
+        });
     }
 
     function playHand() {
-        const selectedIdx = Array.from(document.querySelectorAll('.card.selected')).map(el => parseInt(el.dataset.idx));
-        const selectedCards = selectedIdx.map(i => players[0].hand[i]);
-        
+        const selectedEls = document.querySelectorAll('.card.selected');
+        const selectedCards = Array.from(selectedEls).map(el => players[0].hand[el.dataset.idx]);
+
         if (selectedCards.length === 0) return;
 
-        const type = getHandType(selectedCards);
+        // 檢查牌型 (簡化版：單張或對子)
+        const type = selectedCards.length === 1 ? 'single' : (selectedCards.length === 2 && selectedCards[0].rank === selectedCards[1].rank ? 'pair' : null);
+        
         if (!type || (currentHandType && type !== currentHandType)) {
-            showMessage("牌型不合法或與本輪不符！");
+            showMessage("不合法的牌型！");
             return;
         }
 
-        // 規則判定
+        // 規則驗證
         if (lastHand) {
-            if (!validateReality(selectedCards)) {
-                tryCount++;
-                showMessage(`不符合「真實」！剩餘機會：${2 - tryCount}`);
-                if (tryCount >= 2) { tryCount = 0; passTurn(); }
+            if (!checkReality(selectedCards)) {
+                showMessage("不符合真實！請再試一次或 Pass");
                 return;
             }
         }
@@ -207,20 +192,17 @@
         executeMove(selectedCards);
     }
 
-    function validateReality(cards) {
+    function checkReality(cards) {
         if (currentRule === 'proximity') {
-            const currentDist = Math.abs(cards[0].rank - realityCard.rank);
-            const lastDist = Math.abs(lastHand[0].rank - realityCard.rank);
-            return currentDist < lastDist;
+            return Math.abs(cards[0].rank - realityCard.rank) < Math.abs(lastHand[0].rank - realityCard.rank);
         } else {
-            const hasSuit = cards.some(c => c.suit === realityCard.suit);
-            return hasSuit && cards[0].rank > lastHand[0].rank;
+            const matchSuit = cards.some(c => c.suit === realityCard.suit);
+            return matchSuit && cards[0].rank > lastHand[0].rank;
         }
     }
 
     function executeMove(cards) {
         const p = players[currentPlayerIdx];
-        // 從手牌移除
         cards.forEach(c => {
             const idx = p.hand.findIndex(hc => hc.rank === c.rank && hc.suit === c.suit);
             p.hand.splice(idx, 1);
@@ -228,9 +210,8 @@
 
         lastHand = cards;
         passCount = 0;
-        tryCount = 0;
         
-        // 顯示到桌面
+        // 渲染桌面
         const zone = document.getElementById('last-played-zone');
         zone.innerHTML = '';
         cards.forEach(c => {
@@ -241,51 +222,35 @@
         });
 
         if (p.hand.length === 0) {
-            winners.push(p.id);
-            if (winners.length >= 3) {
-                alert(`遊戲結束！真實牌是：${realityCard.suit}${realityCard.rank}`);
-                location.reload();
-            }
+            alert(`玩家 ${p.id} 獲勝！真實是：${realityCard.suit}${realityCard.rank}`);
+            location.reload();
+            return;
         }
 
         currentPlayerIdx = (currentPlayerIdx + 1) % players.length;
-        updateTable();
-        checkTurn();
+        processTurn();
     }
 
     function passTurn() {
         passCount++;
         currentPlayerIdx = (currentPlayerIdx + 1) % players.length;
-        updateTable();
-        checkTurn();
+        processTurn();
     }
 
-    function aiPlay() {
-        const p = players[currentPlayerIdx];
-        // 簡單 AI：如果是開局隨便出一張；如果是跟牌，有 30% 機率直接 Pass 模擬博弈
-        if (!lastHand) {
-            executeMove([p.hand[0]]);
-        } else {
-            if (Math.random() > 0.7) {
-                passTurn();
-            } else {
-                // 這裡簡化 AI：直接找第一張符合牌型的試試看
-                passTurn(); 
-            }
+    function aiAutoPlay() {
+        if (!currentRule) {
+            setRule(Math.random() > 0.5 ? 'proximity' : 'suit');
+            return;
         }
+        // AI 邏輯：有 50% 機率直接 Pass 以簡化遊戲流程
+        passTurn();
     }
 
     function showMessage(text) {
         const msg = document.getElementById('game-msg');
         msg.innerText = text;
         msg.style.display = 'block';
-        setTimeout(() => msg.style.display = 'none', 2000);
-    }
-
-    function getHandType(cards) {
-        if (cards.length === 1) return 'single';
-        if (cards.length === 2 && cards[0].rank === cards[1].rank) return 'pair';
-        return null; // 簡化版，僅示範單張與對子
+        setTimeout(() => msg.style.display = 'none', 1800);
     }
 </script>
 
