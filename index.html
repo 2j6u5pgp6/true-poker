@@ -2,157 +2,137 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>《真實大老二》正式說明書</title>
+    <title>真實大老二 - 數位試煉場</title>
     <style>
-        body {
-            font-family: "Microsoft JhengHei", sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f4f4f9;
-        }
-        h1 {
-            text-align: center;
-            color: #2c3e50;
-            border-bottom: 2px solid #2c3e50;
-            padding-bottom: 10px;
-        }
-        h2 {
-            color: #e67e22;
-            border-left: 5px solid #e67e22;
-            padding-left: 10px;
-            margin-top: 30px;
-        }
-        h3 {
-            color: #2980b9;
-        }
-        .concept-box {
-            background-color: #fff;
-            padding: 15px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-        }
-        .important {
-            color: #c0392b;
-            font-weight: bold;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-            background-color: #fff;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 12px;
-            text-align: left;
-        }
-        th {
-            background-color: #34495e;
-            color: white;
-        }
-        tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
-        .note {
-            background-color: #ffffd2;
-            padding: 10px;
-            border-left: 5px solid #ffd700;
-            font-size: 0.9em;
-        }
-        footer {
-            margin-top: 50px;
-            text-align: center;
-            font-style: italic;
-            color: #7f8c8d;
-        }
+        :root { --primary: #2c3e50; --gold: #d4af37; --success: #27ae60; --fail: #c0392b; }
+        body { font-family: sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        .game-container { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 600px; width: 100%; }
+        h1 { color: var(--primary); text-align: center; border-bottom: 2px solid var(--gold); }
+        .setup, .play-area { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .card-input { display: flex; gap: 10px; margin-bottom: 10px; }
+        select, input, button { padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
+        button { cursor: pointer; background: var(--primary); color: white; transition: 0.3s; }
+        button:hover { opacity: 0.8; }
+        #log { height: 150px; overflow-y: auto; background: #222; color: #0f0; padding: 10px; font-family: monospace; font-size: 0.9rem; border-radius: 5px; }
+        .status-dot { width: 15px; height: 15px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+        .truth-hidden { background: var(--primary); color: white; padding: 10px; text-align: center; font-weight: bold; border: 2px dashed var(--gold); }
     </style>
 </head>
 <body>
 
-    <h1>《真實大老二》正式說明書</h1>
+<div class="game-container">
+    <h1>真實大老二：系統介面</h1>
+    
+    <div class="truth-hidden" id="truth-display">「真實」已隱藏於範疇之後</div>
 
-    <section>
-        <h2>Ⅰ. 核心概念：真實</h2>
-        <div class="concept-box">
-            <p>每一局開始時，莊家會從牌堆中抽出一張隱藏牌，稱為<strong>「真實」</strong>。</p>
-            <ul>
-                <li><strong>不可知性：</strong> 在遊戲結束前，沒有人知道這張牌是什麼。</li>
-                <li><strong>絕對引力：</strong> 這張牌是該局所有規則的「引力中心」，決定了誰的牌才是真正的「強者」。</li>
-            </ul>
+    <div class="setup">
+        <label>輸入玩家人數 (n): </label>
+        <input type="number" id="player-count" value="4" min="2" max="10">
+        <button onclick="initGame()">重新開始新局</button>
+    </div>
+
+    <div class="play-area">
+        <h3>出牌與立法</h3>
+        <div class="card-input">
+            <select id="suit">
+                <option value="♠">♠ 黑桃</option>
+                <option value="♥">♥ 紅心</option>
+                <option value="♦">♦ 方塊</option>
+                <option value="♣">♣ 梅花</option>
+            </select>
+            <input type="number" id="rank" placeholder="點數(1-13)" min="1" max="13">
         </div>
-    </section>
-
-    <section>
-        <h2>Ⅱ. 遊戲流程 (Game Flow)</h2>
-        <ol>
-            <li><strong>分發現象：</strong> 玩家數不固定為 <em>n</em> 個。由 52 張牌扣除一張「物自身（真實）」後餘 51 張。若 51/n 為整數，則每人發 51/n 張；若有餘數，則僅發放整數張，餘數棄置。</li>
-            <li><strong>起始立法（定義牌型）：</strong> 每一輪的第一位出牌者決定<strong>「牌型」</strong>（單張、對子、三條、鐵支、順子）。後續玩家必須跟隨此牌型。</li>
-            <li><strong>範疇競爭（定義規則）：</strong> 出牌時，你必須選擇一個<strong>「立法」</strong>來主張你的牌為什麼能壓過前人。</li>
-            <li><strong>莊家 (自動系統) 裁決：</strong> 莊家會根據「真實」的情況，對你的立法進行「點頭（通過）」或「搖頭（失敗）」。</li>
-            <li><strong>勝利條件：</strong> 率先將所有手牌送入真實懷抱（出完牌）的人獲得勝利。</li>
-        </ol>
-    </section>
-
-    <section>
-        <h2>Ⅲ. 兩大立法</h2>
-        <p>當你出牌時，你必須宣稱你遵循以下哪一種規律：</p>
-        <table>
-            <thead>
-                <tr>
-                    <th>範疇名稱</th>
-                    <th>核心邏輯</th>
-                    <th>強度計算方式</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><strong>數值鄰近</strong></td>
-                    <td>「越接近本質者越強」</td>
-                    <td>你的牌面點數與「真實」點數距離越近，強度越高。</td>
-                </tr>
-                <tr>
-                    <td><strong>花色一致</strong></td>
-                    <td>「性質相同者具絕對權威」</td>
-                    <td>你的牌花色必須與「真實」完全相同。若相同，則點數大者勝（A > K > ... > 2）。</td>
-                </tr>
-            </tbody>
-        </table>
-        <p class="note"><strong>注意：</strong> 如果你的花色與「真實」不同，使用 <span class="important">花色一致</span> 立法將絕對失敗。</p>
-    </section>
-
-    <section>
-        <h2>Ⅳ. 理性試煉：二次機會機制</h2>
-        <p>這是本遊戲最獨特的設計。身為理性的主體，你擁有兩次嘗試立法的機會：</p>
-        <ul>
-            <li><strong>第一次失敗：</strong> 若莊家搖頭，代表你的「牌組 + 範疇」與真實不符。此時你不會立刻 PASS。</li>
-            <li><strong>第二次機會：</strong> 你可以根據第一次失敗的經驗（例如：發現原來不是紅心，或 10 太遠了），立刻調整策略重新出牌。</li>
-            <li><strong>最終失敗：</strong> 若第二次依然被莊家搖頭，則該回合你必須 PASS。</li>
-        </ul>
-    </section>
-
-    <section>
-        <h2>Ⅵ. 結幕：真相大白</h2>
-        <p>當贏家出現時，莊家將翻開「真實」。</p>
-        <div class="concept-box">
-            <p><strong>規則補遺：</strong></p>
-            <p>當使用 <strong>花色一致</strong> 立法時，後續玩家可出同花色且數字較大的牌。
-            <br>數字大小由 A 至 13 的自然數順序決定：</p>
-            <ul>
-                <li><strong>單張：</strong> 依數字大小。</li>
-                <li><strong>順子：</strong> 由最後一張牌的數字決定。</li>
-                <li><strong>三條：</strong> 由該三張牌的數字決定。</li>
-            </ul>
+        <div class="card-input">
+            <select id="logic">
+                <option value="proximity">立法：數值鄰近 (越近越強)</option>
+                <option value="exact">立法：花色一致 (點數大者勝)</option>
+            </select>
+            <button onclick="submitPlay()" style="background: var(--success);">提交立法判斷</button>
         </div>
-    </section>
+        <p id="chance-text">剩餘嘗試機會：2</p>
+    </div>
 
-    <footer>
-        <p>《真實大老二》—— 尋找那張不可見的本體。</p>
-    </footer>
+    <div id="log">系統日誌：等待開局...</div>
+    
+    <button onclick="revealTruth()" style="margin-top:20px; background: #7f8c8d;">終局：翻開真實</button>
+</div>
+
+<script>
+    let truth = null;
+    let attempts = 2;
+    const suits = ['♠', '♥', '♦', '♣'];
+    const logEl = document.getElementById('log');
+
+    function addLog(msg, color = "#0f0") {
+        logEl.innerHTML += `<div style="color:${color}">> ${msg}</div>`;
+        logEl.scrollTop = logEl.scrollHeight;
+    }
+
+    function initGame() {
+        const n = document.getElementById('player-count').value;
+        const deckSize = 51;
+        const perPlayer = Math.floor(deckSize / n);
+        
+        // 隨機產生「真實」
+        truth = {
+            suit: suits[Math.floor(Math.random() * 4)],
+            rank: Math.floor(Math.random() * 13) + 1
+        };
+        
+        attempts = 2;
+        document.getElementById('chance-text').innerText = `剩餘嘗試機會：2`;
+        document.getElementById('truth-display').innerText = "「真實」已重新定義";
+        
+        addLog(`遊戲初始化：${n}名玩家。`, "white");
+        addLog(`每人分發 ${perPlayer} 張牌，餘 ${deckSize % n} 張棄置。`);
+        addLog(`莊家已抽出一張牌作為「真實」。`);
+    }
+
+    function submitPlay() {
+        if (!truth) return alert("請先開始新局！");
+        
+        const playRank = parseInt(document.getElementById('rank').value);
+        const playSuit = document.getElementById('suit').value;
+        const logic = document.getElementById('logic').value;
+        
+        if (isNaN(playRank) || playRank < 1 || playRank > 13) return alert("請輸入正確點數");
+
+        let success = false;
+        
+        if (logic === 'proximity') {
+            // 簡化邏輯：如果比上一張更靠近真實則通過 (這裡模擬單次判定)
+            // 實作：與真實距離小於等於 3 視為初步通過
+            if (Math.abs(playRank - truth.rank) <= 3) success = true;
+        } else {
+            // 花色必須一致
+            if (playSuit === truth.suit) success = true;
+        }
+
+        if (success) {
+            addLog(`莊家點頭：${playSuit}${playRank} 通過「${logic}」立法！`, "#2ecc71");
+            attempts = 2; // 重設機會
+        } else {
+            attempts--;
+            addLog(`莊家搖頭：${playSuit}${playRank} 不符合真實引力。`, "#e74c3c");
+            if (attempts > 0) {
+                addLog(`理性試煉：你還有 1 次機會重新調整立法。`, "#f1c40f");
+            } else {
+                addLog(`最終失敗：強制 PASS。`, "#c0392b");
+                attempts = 2; 
+            }
+        }
+        document.getElementById('chance-text').innerText = `剩餘嘗試機會：${attempts}`;
+    }
+
+    function revealTruth() {
+        if (!truth) return;
+        document.getElementById('truth-display').innerText = `真實是：${truth.suit} ${truth.rank}`;
+        addLog(`真相大白：本局的引力中心是 ${truth.suit}${truth.rank}。`, var(--gold));
+    }
+
+    // 初始化
+    initGame();
+</script>
 
 </body>
 </html>
