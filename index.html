@@ -2,237 +2,157 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>真實大老二 - 規則全開版</title>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>《真實大老二》正式說明書</title>
     <style>
-        :root { --gold: #d4af37; --bg: #0a0a0a; --card-bg: #eee; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg); color: #b8a07e; font-family: sans-serif; margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        .setup-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; text-align: center; padding: 20px; }
-        .dealer-bar { background: #000; padding: 5px; border-bottom: 2px solid #333; text-align: center; }
-        #noumena-card { width: 40px; height: 55px; background: #111; border: 1px solid #444; margin: 5px auto; line-height: 55px; font-size: 18px; color: transparent; border-radius: 4px; transition: 1.5s; }
-        #noumena-card.reveal { background: var(--card-bg); color: #000; border-color: var(--gold); box-shadow: 0 0 10px var(--gold); }
-        .arena { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; padding: 5px; }
-        #players-info { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; }
-        .player-box { border: 1px solid #333; padding: 3px 8px; background: #151515; font-size: 10px; border-radius: 4px; }
-        .player-box.active { border-color: var(--gold); box-shadow: 0 0 5px var(--gold); color: #fff; }
-        .table-center { width: 90%; max-width: 400px; height: 120px; border: 2px solid #222; border-radius: 60px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, #1a1a1a 0%, #000 100%); }
-        .card { width: 32px; height: 45px; background: var(--card-bg); color: #000; border-radius: 3px; display: inline-block; margin: 2px; line-height: 45px; font-weight: bold; font-size: 13px; text-align: center; border: 1px solid #888; }
-        .card.red { color: #c00; }
-        .hand-zone { background: #111; border-top: 2px solid #333; padding: 10px; flex-shrink: 0; }
-        #my-hand { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; max-height: 100px; overflow-y: auto; margin-bottom: 10px; }
-        .my-card.selected { border: 2px solid var(--gold); transform: translateY(-5px); background: #fff; }
-        .controls { display: flex; justify-content: center; gap: 5px; }
-        button { background: #1a1a1a; color: var(--gold); border: 1px solid #444; padding: 10px; border-radius: 4px; font-size: 12px; flex: 1; max-width: 100px; }
-        button:disabled { opacity: 0.2; }
-        #log { height: 40px; overflow-y: scroll; background: #000; font-size: 9px; padding: 5px; color: #555; text-align: center; }
+        body {
+            font-family: "Microsoft JhengHei", sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            border-bottom: 2px solid #2c3e50;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #e67e22;
+            border-left: 5px solid #e67e22;
+            padding-left: 10px;
+            margin-top: 30px;
+        }
+        h3 {
+            color: #2980b9;
+        }
+        .concept-box {
+            background-color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .important {
+            color: #c0392b;
+            font-weight: bold;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            background-color: #fff;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        th {
+            background-color: #34495e;
+            color: white;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .note {
+            background-color: #ffffd2;
+            padding: 10px;
+            border-left: 5px solid #ffd700;
+            font-size: 0.9em;
+        }
+        footer {
+            margin-top: 50px;
+            text-align: center;
+            font-style: italic;
+            color: #7f8c8d;
+        }
     </style>
 </head>
 <body>
 
-<div id="setup-screen" class="setup-overlay">
-    <h2 style="color:var(--gold)">真實大老二</h2>
-    <div id="init-btns">
-        <button onclick="initHost()">創立房間</button>
-        <button onclick="showJoinInput()">加入房間</button>
-    </div>
-    <div id="host-zone" style="display:none;">
-        <p>房長 ID: <b id="display-id" style="color:var(--gold)">生成中...</b></p>
-        <button onclick="startMultiplayerGame()" id="start-btn" disabled>等待玩家...</button>
-    </div>
-    <div id="join-zone" style="display:none;">
-        <input type="text" id="join-id" placeholder="貼上房長 ID" style="padding:10px; width:80%; margin-bottom:10px;">
-        <button onclick="connectToHost()">進入連線</button>
-    </div>
-</div>
+    <h1>《真實大老二》正式說明書</h1>
 
-<div class="dealer-bar"><div id="noumena-card">?</div></div>
-<div class="arena">
-    <div id="players-info"></div>
-    <div class="table-center">
-        <div id="table-cards"></div>
-        <div id="table-info" style="font-size:10px; color:var(--gold); margin-top:5px;">準備就緒</div>
-    </div>
-</div>
-<div id="log">> 歡迎來到真實試煉</div>
-<div class="hand-zone">
-    <div id="my-hand"></div>
-    <div class="controls">
-        <button id="btn-dist" onclick="sendAction('PLAY', 'DIST')" disabled>數值鄰近</button>
-        <button id="btn-suit" onclick="sendAction('PLAY', 'SUIT')" disabled>花色一致</button>
-        <button id="btn-pass" onclick="sendAction('PASS')" disabled>PASS</button>
-    </div>
-    <div id="status-indicator" style="text-align:center; font-size:10px; margin-top:5px; color:var(--gold)"></div>
-</div>
+    <section>
+        <h2>Ⅰ. 核心概念：真實</h2>
+        <div class="concept-box">
+            <p>每一局開始時，莊家會從牌堆中抽出一張隱藏牌，稱為<strong>「真實」</strong>。</p>
+            <ul>
+                <li><strong>不可知性：</strong> 在遊戲結束前，沒有人知道這張牌是什麼。</li>
+                <li><strong>絕對引力：</strong> 這張牌是該局所有規則的「引力中心」，決定了誰的牌才是真正的「強者」。</li>
+            </ul>
+        </div>
+    </section>
 
-<script>
-    const SUITS = ['♠','♥','♦','♣'], VALUES = [1,2,3,4,5,6,7,8,9,10,11,12,13];
-    let peer, conn, connections = [], isHost = false;
-    let myId, myCards = [], currentTurnIdx = 0, selectedIdxs = [];
-    let gameState = { players: [], table: { cards: [], power: -1, rule: "", type: null, leaderId: -1 }, secret: null };
+    <section>
+        <h2>Ⅱ. 遊戲流程 (Game Flow)</h2>
+        <ol>
+            <li><strong>分發現象：</strong> 玩家數不固定為 <em>n</em> 個。由 52 張牌扣除一張「物自身（真實）」後餘 51 張。若 51/n 為整數，則每人發 51/n 張；若有餘數，則僅發放整數張，餘數棄置。</li>
+            <li><strong>起始立法（定義牌型）：</strong> 每一輪的第一位出牌者決定<strong>「牌型」</strong>（單張、對子、三條、鐵支、順子）。後續玩家必須跟隨此牌型。</li>
+            <li><strong>範疇競爭（定義規則）：</strong> 出牌時，你必須選擇一個<strong>「立法」</strong>來主張你的牌為什麼能壓過前人。</li>
+            <li><strong>莊家 (自動系統) 裁決：</strong> 莊家會根據「真實」的情況，對你的立法進行「點頭（通過）」或「搖頭（失敗）」。</li>
+            <li><strong>勝利條件：</strong> 率先將所有手牌送入真實懷抱（出完牌）的人獲得勝利。</li>
+        </ol>
+    </section>
 
-    function initHost() {
-        isHost = true;
-        peer = new Peer();
-        peer.on('open', id => {
-            document.getElementById('display-id').innerText = id;
-            document.getElementById('init-btns').style.display = 'none';
-            document.getElementById('host-zone').style.display = 'block';
-        });
-        peer.on('connection', c => {
-            c.on('open', () => {
-                connections.push(c);
-                document.getElementById('start-btn').disabled = false;
-                document.getElementById('start-btn').innerText = "開始遊戲";
-            });
-            c.on('data', data => handleData(data, c));
-        });
-    }
+    <section>
+        <h2>Ⅲ. 兩大立法</h2>
+        <p>當你出牌時，你必須宣稱你遵循以下哪一種規律：</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>範疇名稱</th>
+                    <th>核心邏輯</th>
+                    <th>強度計算方式</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>數值鄰近</strong></td>
+                    <td>「越接近本質者越強」</td>
+                    <td>你的牌面點數與「真實」點數距離越近，強度越高。</td>
+                </tr>
+                <tr>
+                    <td><strong>花色一致</strong></td>
+                    <td>「性質相同者具絕對權威」</td>
+                    <td>你的牌花色必須與「真實」完全相同。若相同，則點數大者勝（A > K > ... > 2）。</td>
+                </tr>
+            </tbody>
+        </table>
+        <p class="note"><strong>注意：</strong> 如果你的花色與「真實」不同，使用 <span class="important">花色一致</span> 立法將絕對失敗。</p>
+    </section>
 
-    function showJoinInput() {
-        document.getElementById('init-btns').style.display = 'none';
-        document.getElementById('join-zone').style.display = 'block';
-    }
+    <section>
+        <h2>Ⅳ. 理性試煉：二次機會機制</h2>
+        <p>這是本遊戲最獨特的設計。身為理性的主體，你擁有兩次嘗試立法的機會：</p>
+        <ul>
+            <li><strong>第一次失敗：</strong> 若莊家搖頭，代表你的「牌組 + 範疇」與真實不符。此時你不會立刻 PASS。</li>
+            <li><strong>第二次機會：</strong> 你可以根據第一次失敗的經驗（例如：發現原來不是紅心，或 10 太遠了），立刻調整策略重新出牌。</li>
+            <li><strong>最終失敗：</strong> 若第二次依然被莊家搖頭，則該回合你必須 PASS。</li>
+        </ul>
+    </section>
 
-    function connectToHost() {
-        const hostId = document.getElementById('join-id').value.trim();
-        peer = new Peer();
-        peer.on('open', id => {
-            myId = id;
-            conn = peer.connect(hostId, { reliable: true });
-            conn.on('open', () => {
-                document.getElementById('setup-screen').innerHTML = "<h3>連線成功</h3><p>等待房長發牌...</p>";
-                conn.on('data', data => handleData(data));
-            });
-        });
-    }
+    <section>
+        <h2>Ⅵ. 結幕：真相大白</h2>
+        <p>當贏家出現時，莊家將翻開「真實」。</p>
+        <div class="concept-box">
+            <p><strong>規則補遺：</strong></p>
+            <p>當使用 <strong>花色一致</strong> 立法時，後續玩家可出同花色且數字較大的牌。
+            <br>數字大小由 A 至 13 的自然數順序決定：</p>
+            <ul>
+                <li><strong>單張：</strong> 依數字大小。</li>
+                <li><strong>順子：</strong> 由最後一張牌的數字決定。</li>
+                <li><strong>三條：</strong> 由該三張牌的數字決定。</li>
+            </ul>
+        </div>
+    </section>
 
-    function startMultiplayerGame() {
-        let deck = [];
-        SUITS.forEach(s => VALUES.forEach(v => deck.push({val:v, suit:s, label:v===1?'A':v===11?'J':v===12?'Q':v===13?'K':v})));
-        const sIdx = Math.floor(Math.random() * deck.length);
-        gameState.secret = deck.splice(sIdx, 1)[0];
-        deck.sort(() => Math.random() - 0.5);
+    <footer>
+        <p>《真實大老二》—— 尋找那張不可見的本體。</p>
+    </footer>
 
-        const n = connections.length + 1;
-        const per = Math.floor(51 / n);
-        gameState.players = [{ id: peer.id, name: "房長", cards: deck.splice(0, per).sort((a,b)=>a.val-b.val), finished: false }];
-        connections.forEach((c, i) => {
-            gameState.players.push({ id: c.peer, name: `玩家 ${i+1}`, cards: deck.splice(0, per).sort((a,b)=>a.val-b.val), finished: false });
-        });
-        broadcast({ type: 'INIT', gameState }); 
-        document.getElementById('setup-screen').style.display = 'none';
-        syncUI();
-    }
-
-    function handleData(data, fromConn) {
-        if (data.type === 'INIT') { gameState = data.gameState; myId = peer.id; document.getElementById('setup-screen').style.display = 'none'; syncUI(); }
-        if (data.type === 'UPDATE') { gameState = data.gameState; syncUI(); }
-        if (data.type === 'PLAY' && isHost) autoJudge(data);
-        if (data.type === 'PASS' && isHost) nextTurn();
-        if (data.type === 'LOG') log(data.msg);
-        if (data.type === 'REVEAL') revealReal(data.secret);
-    }
-
-    function getHandAnalysis(cards) {
-        if (cards.length === 0) return null;
-        const sorted = [...cards].sort((a,b)=>a.val - b.val);
-        const vals = sorted.map(c => c.val);
-        
-        if (cards.length === 1) return { type: '單張', p: vals[0] };
-        if (cards.length === 2 && vals[0] === vals[1]) return { type: '對子', p: vals[0] };
-        if (cards.length === 3 && vals[0] === vals[2]) return { type: '三條', p: vals[0] };
-        if (cards.length === 4 && vals[0] === vals[3]) return { type: '鐵支', p: vals[0] };
-        if (cards.length === 5) {
-            const isStraight = vals.every((v,i) => i===0 || v === vals[i-1]+1);
-            const counts = {}; vals.forEach(v => counts[v] = (counts[v]||0)+1);
-            const countArr = Object.values(counts).sort((a,b)=>b-a);
-            if (isStraight) return { type: '順子', p: vals[4] };
-            if (countArr[0] === 3 && countArr[1] === 2) {
-                const tripleVal = Object.keys(counts).find(k => counts[k] === 3);
-                return { type: '葫蘆', p: parseInt(tripleVal) };
-            }
-        }
-        return null;
-    }
-
-    function autoJudge(data) {
-        const player = gameState.players[currentTurnIdx];
-        const analysis = getHandAnalysis(data.cards);
-        if (!analysis) return;
-
-        let power = -1;
-        if (data.rule === 'DIST') {
-            power = data.cards.reduce((acc, c) => acc + (14 - Math.abs(c.val - gameState.secret.val)), 0) / data.cards.length;
-        } else if (data.rule === 'SUIT') {
-            const allMatch = data.cards.every(c => c.suit === gameState.secret.suit);
-            if (allMatch) power = 100 + analysis.p; // 花色一致優先級極高，依據自然數比大
-        }
-
-        if (power > gameState.table.power && (!gameState.table.type || analysis.type === gameState.table.type)) {
-            gameState.table = { cards: data.cards, power: power, rule: data.rule, type: analysis.type, leaderId: player.id };
-            player.cards = player.cards.filter(c => !data.cards.some(dc => dc.val === c.val && dc.suit === c.suit));
-            if (player.cards.length === 0) player.finished = true;
-            if (gameState.players.every(p => p.finished)) broadcast({ type: 'REVEAL', secret: gameState.secret });
-            else nextTurn();
-        } else {
-            const target = connections.find(c => c.peer === player.id);
-            if (target) target.send({ type: 'LOG', msg: "判定失敗：數值不足或牌型錯誤" });
-            else if (isHost) log("判定失敗");
-        }
-    }
-
-    function syncUI() {
-        const me = gameState.players.find(p => p.id === peer.id);
-        if (!me) return;
-        myCards = me.cards;
-        const isMyTurn = gameState.players[currentTurnIdx]?.id === peer.id;
-        document.getElementById('btn-dist').disabled = !isMyTurn || me.finished;
-        document.getElementById('btn-suit').disabled = !isMyTurn || me.finished;
-        document.getElementById('btn-pass').disabled = !isMyTurn || me.finished || gameState.table.leaderId === -1;
-        document.getElementById('status-indicator').innerText = me.finished ? "完賽" : (isMyTurn ? "★ 輪到你" : "等待");
-        renderHand();
-        document.getElementById('players-info').innerHTML = gameState.players.map((p, i) => `<div class="player-box ${currentTurnIdx===i?'active':''}">${p.name}: ${p.cards.length}</div>`).join('');
-        document.getElementById('table-cards').innerHTML = gameState.table.cards.map(c => `<div class="card ${c.suit==='♥'||c.suit==='♦'?'red':''}">${c.suit}${c.label}</div>`).join('');
-        document.getElementById('table-info').innerText = gameState.table.type ? `${gameState.table.type} [${gameState.table.rule}]` : "等待開牌";
-    }
-
-    function renderHand() {
-        document.getElementById('my-hand').innerHTML = myCards.map((c, i) => `<div class="card my-card ${selectedIdxs.includes(i)?'selected':''} ${c.suit==='♥'||c.suit==='♦'?'red':''}" onclick="toggleCard(${i})">${c.suit}${c.label}</div>`).join('');
-    }
-
-    function toggleCard(i) {
-        if (selectedIdxs.includes(i)) selectedIdxs = selectedIdxs.filter(x => x !== i); else selectedIdxs.push(i);
-        renderHand();
-    }
-
-    function sendAction(type, rule) {
-        const sel = selectedIdxs.map(i => myCards[i]);
-        const msg = { type, cards: sel, rule, peerId: peer.id };
-        if (isHost) handleData(msg); else conn.send(msg);
-        selectedIdxs = [];
-    }
-
-    function nextTurn() {
-        let nextIdx = (currentTurnIdx + 1) % gameState.players.length;
-        while (gameState.players[nextIdx].finished) { nextIdx = (nextIdx + 1) % gameState.players.length; }
-        currentTurnIdx = nextIdx;
-        if (gameState.players[currentTurnIdx].id === gameState.table.leaderId) {
-            gameState.table = { cards: [], power: -1, rule: "", type: null, leaderId: -1 };
-        }
-        broadcast({ type: 'UPDATE', gameState });
-    }
-
-    function broadcast(data) { connections.forEach(c => c.send(data)); handleData(data); }
-    function log(m) { document.getElementById('log').innerText = `> ${m}`; }
-    function revealReal(s) {
-        const nc = document.getElementById('noumena-card');
-        nc.innerText = s.suit + s.label; nc.className = 'reveal';
-        if (s.suit==='♥'||s.suit==='♦') nc.style.color = 'red';
-        log("真實顯現！遊戲結束");
-        currentTurnIdx = -1; syncUI();
-    }
-</script>
 </body>
 </html>
