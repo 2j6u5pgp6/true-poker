@@ -2,240 +2,286 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>真實大老二 - 最終試煉版</title>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大老二-真實 (Big Two: The Reality)</title>
     <style>
-        :root { --gold: #d4af37; --bg: #0a0a0a; --card-bg: #eee; }
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { background: var(--bg); color: #b8a07e; font-family: sans-serif; margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        .setup-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; text-align: center; padding: 20px; }
-        .dealer-bar { background: #000; padding: 5px; border-bottom: 2px solid #333; text-align: center; }
-        #noumena-card { width: 45px; height: 60px; background: #111; border: 1px solid #444; margin: 5px auto; line-height: 60px; font-size: 20px; color: transparent; border-radius: 4px; transition: 1.5s; }
-        #noumena-card.reveal { background: var(--card-bg); color: #000; border-color: var(--gold); box-shadow: 0 0 10px var(--gold); }
-        .arena { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; padding: 5px; }
-        #players-info { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; }
-        .player-box { border: 1px solid #333; padding: 4px 10px; background: #151515; font-size: 11px; border-radius: 4px; }
-        .player-box.active { border-color: var(--gold); box-shadow: 0 0 8px var(--gold); color: #fff; }
-        .table-center { width: 95%; max-width: 450px; height: 140px; border: 2px solid #222; border-radius: 70px; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle, #1a1a1a 0%, #000 100%); }
-        .card { width: 35px; height: 50px; background: var(--card-bg); color: #000; border-radius: 4px; display: inline-block; margin: 2px; line-height: 50px; font-weight: bold; font-size: 14px; text-align: center; border: 1px solid #888; }
-        .card.red { color: #c00; }
-        .hand-zone { background: #111; border-top: 2px solid #333; padding: 10px; flex-shrink: 0; }
-        #my-hand { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; max-height: 120px; overflow-y: auto; margin-bottom: 10px; }
-        .my-card.selected { border: 2px solid var(--gold); transform: translateY(-8px); background: #fff; }
-        .controls { display: flex; justify-content: center; gap: 8px; }
-        button { background: #1a1a1a; color: var(--gold); border: 1px solid #444; padding: 12px; border-radius: 5px; font-size: 13px; flex: 1; font-weight: bold; }
-        button:disabled { opacity: 0.2; }
-        #log { height: 45px; overflow-y: scroll; background: #000; font-size: 10px; padding: 5px; color: #666; text-align: center; border-top: 1px solid #222; }
+        :root {
+            --bg-color: #1a1a1a;
+            --card-back: #2c3e50;
+            --primary: #e74c3c;
+            --secondary: #3498db;
+            --text: #ecf0f1;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-color); color: var(--text); display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        #game-info { background: #333; padding: 15px; border-radius: 8px; margin-bottom: 20px; width: 80%; max-width: 800px; text-align: center; border: 1px solid #555; }
+        .reality-hidden { color: #f1c40f; font-weight: bold; font-size: 1.2em; }
+        .status-msg { margin: 10px 0; color: #3498db; min-height: 24px; }
+        #player-area { width: 90%; display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 30px; }
+        .card { width: 60px; height: 90px; background: white; color: black; border-radius: 5px; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; border: 2px solid transparent; user-select: none; transition: transform 0.2s; }
+        .card.selected { border-color: var(--primary); transform: translateY(-10px); }
+        .card.red { color: #e74c3c; }
+        .card-num { font-size: 1.5em; font-weight: bold; }
+        #controls { margin-top: 20px; display: flex; gap: 10px; }
+        button { padding: 10px 20px; font-size: 1em; cursor: pointer; border: none; border-radius: 5px; background: var(--secondary); color: white; transition: 0.3s; }
+        button:disabled { background: #555; cursor: not-allowed; }
+        button:hover:not(:disabled) { opacity: 0.8; }
+        .rule-select { margin-bottom: 15px; display: none; }
+        #game-log { width: 80%; max-width: 800px; height: 150px; background: #000; overflow-y: auto; padding: 10px; font-size: 0.9em; color: #aaa; margin-top: 20px; border: 1px solid #444; }
     </style>
 </head>
 <body>
 
-<div id="setup-screen" class="setup-overlay">
-    <h1 style="color:var(--gold); margin-bottom:0;">真實大老二</h1>
-    <p style="font-size:12px; opacity:0.7;">GitHub Pages 穩定版</p>
-    <div id="init-btns" style="margin-top:20px;">
-        <button onclick="initHost()">創立房間</button>
-        <button onclick="showJoinInput()">加入房間</button>
-    </div>
-    <div id="host-zone" style="display:none; margin-top:20px;">
-        <p>房長 ID: <b id="display-id" style="color:var(--gold); font-size:18px;">...</b></p>
-        <button onclick="startMultiplayerGame()" id="start-btn" disabled>等待玩家加入...</button>
-    </div>
-    <div id="join-zone" style="display:none; margin-top:20px;">
-        <input type="text" id="join-id" placeholder="貼上房長 ID" style="padding:12px; width:220px; border-radius:5px; border:1px solid #444; background:#000; color:#fff;">
-        <button onclick="connectToHost()" style="margin-top:10px;">進入連線</button>
-    </div>
+<h1>大老二-真實</h1>
+
+<div id="game-info">
+    <div>當前「真實」：<span class="reality-hidden">尚未揭曉（封印中）</span></div>
+    <div id="current-rule-display">當前規則：等待開局</div>
+    <div class="status-msg" id="status-msg">請輸入玩家人數開始遊戲</div>
 </div>
 
-<div class="dealer-bar"><div id="noumena-card">?</div></div>
-<div class="arena">
-    <div id="players-info"></div>
-    <div class="table-center">
-        <div id="table-cards"></div>
-        <div id="table-info" style="font-size:11px; color:var(--gold); margin-top:5px;">試煉即將開始</div>
-    </div>
+<div id="setup-area">
+    <input type="number" id="player-count" value="4" min="2" max="6">
+    <button onclick="startGame()">開始遊戲</button>
 </div>
-<div id="log">> 準備啟動真實邏輯</div>
-<div class="hand-zone">
-    <div id="my-hand"></div>
-    <div class="controls">
-        <button id="btn-dist" onclick="sendAction('PLAY', 'DIST')" disabled>數值鄰近</button>
-        <button id="btn-suit" onclick="sendAction('PLAY', 'SUIT')" disabled>花色一致</button>
-        <button id="btn-pass" onclick="sendAction('PASS')" disabled>PASS</button>
-    </div>
-    <div id="status-indicator" style="text-align:center; font-size:10px; margin-top:8px; color:var(--gold)"></div>
+
+<div class="rule-select" id="rule-selector">
+    <label>請選擇此輪基準：</label>
+    <button onclick="setRule('proximity')">數量鄰近</button>
+    <button onclick="setRule('suit')">花色一致</button>
 </div>
+
+<div id="player-area"></div>
+
+<div id="controls" style="display:none;">
+    <button id="play-btn" onclick="playHand()">出牌</button>
+    <button id="pass-btn" onclick="passTurn()">Pass</button>
+</div>
+
+<div id="game-log"></div>
 
 <script>
-    const SUITS = ['♠','♥','♦','♣'], VALUES = [1,2,3,4,5,6,7,8,9,10,11,12,13];
-    let peer, conn, connections = [], isHost = false;
-    let myId, myCards = [], currentTurnIdx = 0, selectedIdxs = [];
-    let gameState = { players: [], table: { cards: [], power: -1, rule: "", type: null, leaderId: -1 }, secret: null };
+    const SUITS = ['♠', '♥', '♦', '♣'];
+    const RANKS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13'];
+    const SUIT_COLORS = { '♠': 'black', '♥': 'red', '♦': 'red', '♣': 'black' };
 
-    function initHost() {
-        isHost = true;
-        peer = new Peer();
-        peer.on('open', id => {
-            document.getElementById('display-id').innerText = id;
-            document.getElementById('init-btns').style.display = 'none';
-            document.getElementById('host-zone').style.display = 'block';
-        });
-        peer.on('connection', c => {
-            c.on('open', () => {
-                connections.push(c);
-                document.getElementById('start-btn').disabled = false;
-                document.getElementById('start-btn').innerText = "開始遊戲 (" + connections.length + "位玩家已就緒)";
-            });
-            c.on('data', data => handleData(data, c));
-        });
+    let deck = [];
+    let players = [];
+    let currentPlayerIndex = 0;
+    let realityCard = null;
+    let lastHand = null;
+    let currentRule = null; // 'proximity' or 'suit'
+    let currentHandType = null; // 'single', 'pair', etc.
+    let tryCount = 0;
+    let passCount = 0;
+    let gameEnded = false;
+    let winners = [];
+
+    function log(msg) {
+        const logDiv = document.getElementById('game-log');
+        logDiv.innerHTML += `<div>> ${msg}</div>`;
+        logDiv.scrollTop = logDiv.scrollHeight;
     }
 
-    function showJoinInput() {
-        document.getElementById('init-btns').style.display = 'none';
-        document.getElementById('join-zone').style.display = 'block';
-    }
-
-    function connectToHost() {
-        const hostId = document.getElementById('join-id').value.trim();
-        peer = new Peer();
-        peer.on('open', id => {
-            myId = id;
-            conn = peer.connect(hostId, { reliable: true });
-            conn.on('open', () => {
-                document.getElementById('setup-screen').innerHTML = "<h3>連線成功</h3><p>等待發牌...</p>";
-                conn.on('data', data => handleData(data));
-            });
-        });
-    }
-
-    function startMultiplayerGame() {
-        let deck = [];
-        SUITS.forEach(s => VALUES.forEach(v => deck.push({val:v, suit:s, label:v===1?'A':v===11?'J':v===12?'Q':v===13?'K':v})));
-        const sIdx = Math.floor(Math.random() * deck.length);
-        gameState.secret = deck.splice(sIdx, 1)[0];
-        deck.sort(() => Math.random() - 0.5);
-
-        const n = connections.length + 1;
-        const per = Math.floor(51 / n);
-        gameState.players = [{ id: peer.id, name: "房長", cards: deck.splice(0, per).sort((a,b)=>a.val-b.val), finished: false }];
-        connections.forEach((c, i) => {
-            gameState.players.push({ id: c.peer, name: `玩家 ${i+1}`, cards: deck.splice(0, per).sort((a,b)=>a.val-b.val), finished: false });
-        });
-        broadcast({ type: 'INIT', gameState }); 
-        document.getElementById('setup-screen').style.display = 'none';
-        syncUI();
-    }
-
-    function handleData(data, fromConn) {
-        if (data.type === 'INIT') { gameState = data.gameState; myId = peer.id; document.getElementById('setup-screen').style.display = 'none'; syncUI(); }
-        if (data.type === 'UPDATE') { gameState = data.gameState; syncUI(); }
-        if (data.type === 'PLAY' && isHost) autoJudge(data);
-        if (data.type === 'PASS' && isHost) nextTurn();
-        if (data.type === 'LOG') log(data.msg);
-        if (data.type === 'REVEAL') revealReal(data.secret);
-    }
-
-    function getHandAnalysis(cards) {
-        if (cards.length === 0) return null;
-        const sorted = [...cards].sort((a,b)=>a.val - b.val);
-        const vals = sorted.map(c => c.val);
-        
-        if (cards.length === 1) return { type: '單張', p: vals[0] };
-        if (cards.length === 2 && vals[0] === vals[1]) return { type: '對子', p: vals[0] };
-        if (cards.length === 3 && vals[0] === vals[2]) return { type: '三條', p: vals[0] };
-        if (cards.length === 4 && vals[0] === vals[3]) return { type: '鐵支', p: vals[0] };
-        if (cards.length === 5) {
-            const isStraight = vals.every((v,i) => i===0 || v === vals[i-1]+1);
-            const counts = {}; vals.forEach(v => counts[v] = (counts[v]||0)+1);
-            const countArr = Object.values(counts).sort((a,b)=>b-a);
-            if (isStraight) return { type: '順子', p: vals[4] };
-            if (countArr[0] === 3 && countArr[1] === 2) {
-                const tripleVal = Object.keys(counts).find(k => counts[k] === 3);
-                return { type: '葫蘆', p: parseInt(tripleVal) };
+    function createDeck() {
+        let d = [];
+        for (let s of SUITS) {
+            for (let r of RANKS) {
+                d.push({ suit: s, rank: parseInt(r) });
             }
+        }
+        return d.sort(() => Math.random() - 0.5);
+    }
+
+    function startGame() {
+        const n = parseInt(document.getElementById('player-count').value);
+        if (n < 2) return alert("至少需要2人");
+        
+        let fullDeck = createDeck();
+        realityCard = fullDeck.pop(); // 挑出一張作為真實
+        
+        const cardsPerPlayer = Math.floor(51 / n);
+        players = [];
+        for (let i = 0; i < n; i++) {
+            players.push({
+                id: i + 1,
+                hand: fullDeck.splice(0, cardsPerPlayer),
+                active: true
+            });
+        }
+
+        document.getElementById('setup-area').style.display = 'none';
+        document.getElementById('controls').style.display = 'flex';
+        currentPlayerIndex = Math.floor(Math.random() * n);
+        
+        log(`遊戲開始！「真實」已選定。由 玩家 ${currentPlayerIndex + 1} 開局。`);
+        startNewRound();
+    }
+
+    function startNewRound() {
+        lastHand = null;
+        currentRule = null;
+        currentHandType = null;
+        passCount = 0;
+        document.getElementById('rule-selector').style.display = 'block';
+        updateUI();
+    }
+
+    function setRule(rule) {
+        currentRule = rule;
+        document.getElementById('rule-selector').style.display = 'none';
+        document.getElementById('current-rule-display').innerText = `當前規則：${rule === 'proximity' ? '數量鄰近' : '花色一致'}`;
+        updateUI();
+    }
+
+    function renderHand() {
+        const area = document.getElementById('player-area');
+        area.innerHTML = '';
+        const p = players[currentPlayerIndex];
+        
+        document.getElementById('status-msg').innerText = `輪到玩家 ${p.id} (剩餘 ${p.hand.length} 張)`;
+        
+        p.hand.sort((a,b) => a.rank - b.rank).forEach((card, index) => {
+            const cardEl = document.createElement('div');
+            cardEl.className = `card ${SUIT_COLORS[card.suit]}`;
+            cardEl.innerHTML = `<div class="card-num">${card.rank}</div><div>${card.suit}</div>`;
+            cardEl.onclick = () => {
+                cardEl.classList.toggle('selected');
+            };
+            cardEl.dataset.idx = index;
+            area.appendChild(cardEl);
+        });
+    }
+
+    function getSelectedCards() {
+        const selectedEls = document.querySelectorAll('.card.selected');
+        const p = players[currentPlayerIndex];
+        return Array.from(selectedEls).map(el => p.hand[el.dataset.idx]);
+    }
+
+    function getHandType(cards) {
+        if (cards.length === 1) return 'single';
+        if (cards.length === 2 && cards[0].rank === cards[1].rank) return 'pair';
+        if (cards.length === 3 && cards[0].rank === cards[1].rank && cards[1].rank === cards[2].rank) return 'triple';
+        if (cards.length === 5) {
+            const counts = {};
+            cards.forEach(c => counts[c.rank] = (counts[c.rank] || 0) + 1);
+            const vals = Object.values(counts);
+            if (vals.includes(3) && vals.includes(2)) return 'fullhouse';
+            if (vals.includes(4)) return 'fourkind';
+            // 簡化版順子判斷
+            const ranks = cards.map(c => c.rank).sort((a,b) => a-b);
+            if (ranks[4] - ranks[0] === 4) return 'straight';
         }
         return null;
     }
 
-    function autoJudge(data) {
-        const player = gameState.players[currentTurnIdx];
-        const analysis = getHandAnalysis(data.cards);
-        if (!analysis) return;
+    function playHand() {
+        const selected = getSelectedCards();
+        const type = getHandType(selected);
 
-        let power = -1;
-        if (data.rule === 'DIST') {
-            power = data.cards.reduce((acc, c) => acc + (14 - Math.abs(c.val - gameState.secret.val)), 0) / data.cards.length;
-        } else if (data.rule === 'SUIT') {
-            const allMatch = data.cards.every(c => c.suit === gameState.secret.suit);
-            if (allMatch) power = 100 + analysis.p; 
+        if (!type) {
+            alert("無效的牌型！");
+            return;
         }
 
-        // 首家出牌或後手壓牌邏輯
-        const isFirstMove = gameState.table.leaderId === -1;
-        if (power > gameState.table.power && (isFirstMove || analysis.type === gameState.table.type)) {
-            gameState.table = { cards: data.cards, power: power, rule: data.rule, type: analysis.type, leaderId: player.id };
-            player.cards = player.cards.filter(c => !data.cards.some(dc => dc.val === c.val && dc.suit === c.suit));
-            if (player.cards.length === 0) player.finished = true;
-            if (gameState.players.every(p => p.finished)) broadcast({ type: 'REVEAL', secret: gameState.secret });
-            else nextTurn();
+        // 第一手決定牌型
+        if (!lastHand) {
+            if (!currentRule) { alert("請先選擇本輪規則基準"); return; }
+            currentHandType = type;
+            executeMove(selected);
+            return;
+        }
+
+        // 檢查規則一致性
+        if (type !== currentHandType) {
+            alert(`牌型不符！這輪必須出 ${currentHandType}`);
+            return;
+        }
+
+        // 真實判斷邏輯
+        let isValid = false;
+        if (currentRule === 'proximity') {
+            const currentDist = Math.abs(selected[0].rank - realityCard.rank);
+            const lastDist = Math.abs(lastHand[0].rank - realityCard.rank);
+            if (currentDist < lastDist) isValid = true;
+        } else if (currentRule === 'suit') {
+            const hasSameSuit = selected.some(c => c.suit === realityCard.suit);
+            if (hasSameSuit && selected[0].rank > lastHand[0].rank) isValid = true;
+        }
+
+        if (isValid) {
+            tryCount = 0;
+            executeMove(selected);
         } else {
-            const target = connections.find(c => c.peer === player.id);
-            if (target) target.send({ type: 'LOG', msg: "判定失敗：條件不符" });
-            else if (isHost) log("不合規的出牌");
+            tryCount++;
+            alert(`不符合「真實」規律！剩餘機會: ${2 - tryCount}`);
+            if (tryCount >= 2) {
+                tryCount = 0;
+                passTurn();
+            }
         }
     }
 
-    function syncUI() {
-        const me = gameState.players.find(p => p.id === peer.id);
-        if (!me) return;
-        myCards = me.cards;
-        const isMyTurn = gameState.players[currentTurnIdx]?.id === peer.id;
-        document.getElementById('btn-dist').disabled = !isMyTurn || me.finished || selectedIdxs.length === 0;
-        document.getElementById('btn-suit').disabled = !isMyTurn || me.finished || selectedIdxs.length === 0;
-        document.getElementById('btn-pass').disabled = !isMyTurn || me.finished || gameState.table.leaderId === -1;
-        document.getElementById('status-indicator').innerText = me.finished ? "已完賽" : (isMyTurn ? "★ 輪到你" : "等待他人");
+    function executeMove(selected) {
+        const p = players[currentPlayerIndex];
+        lastHand = selected;
+        // 從手牌移除
+        selected.forEach(sc => {
+            const idx = p.hand.findIndex(hc => hc.rank === sc.rank && hc.suit === sc.suit);
+            p.hand.splice(idx, 1);
+        });
+
+        log(`玩家 ${p.id} 出了 ${selected.map(c => c.suit + c.rank).join(', ')}`);
+        
+        if (p.hand.length === 0) {
+            log(`★ 玩家 ${p.id} 獲勝！`);
+            winners.push(p.id);
+            players.splice(currentPlayerIndex, 1);
+            if (players.length === 0) {
+                endGame();
+                return;
+            }
+            currentPlayerIndex %= players.length;
+        } else {
+            nextPlayer();
+        }
+        passCount = 0;
+        updateUI();
+    }
+
+    function passTurn() {
+        log(`玩家 ${players[currentPlayerIndex].id} 跳過`);
+        passCount++;
+        nextPlayer();
+        
+        if (passCount >= players.length - 1 && players.length > 0) {
+            log(`所有玩家 Pass。玩家 ${players[currentPlayerIndex].id} 重新開局。`);
+            startNewRound();
+        } else {
+            updateUI();
+        }
+    }
+
+    function nextPlayer() {
+        currentPlayerIndex = (currentPlayerIndex + 1) % players.length;
+    }
+
+    function updateUI() {
+        if (gameEnded) return;
         renderHand();
-        document.getElementById('players-info').innerHTML = gameState.players.map((p, i) => `<div class="player-box ${currentTurnIdx===i?'active':''} ${p.finished?'finished':''}">${p.name}: ${p.cards.length}</div>`).join('');
-        document.getElementById('table-cards').innerHTML = gameState.table.cards.map(c => `<div class="card ${c.suit==='♥'||c.suit==='♦'?'red':''}">${c.suit}${c.label}</div>`).join('');
-        document.getElementById('table-info').innerText = gameState.table.type ? `${gameState.table.type} [${gameState.table.rule}]` : "自由出牌階段";
     }
 
-    function renderHand() {
-        document.getElementById('my-hand').innerHTML = myCards.map((c, i) => `<div class="card my-card ${selectedIdxs.includes(i)?'selected':''} ${c.suit==='♥'||c.suit==='♦'?'red':''}" onclick="toggleCard(${i})">${c.suit}${c.label}</div>`).join('');
-    }
-
-    function toggleCard(i) {
-        if (selectedIdxs.includes(i)) selectedIdxs = selectedIdxs.filter(x => x !== i); else selectedIdxs.push(i);
-        syncUI(); 
-    }
-
-    function sendAction(type, rule) {
-        const sel = selectedIdxs.map(i => myCards[i]);
-        const msg = { type, cards: sel, rule, peerId: peer.id };
-        if (isHost) handleData(msg); else conn.send(msg);
-        selectedIdxs = [];
-    }
-
-    function nextTurn() {
-        let nextIdx = (currentTurnIdx + 1) % gameState.players.length;
-        while (gameState.players[nextIdx].finished) { nextIdx = (nextIdx + 1) % gameState.players.length; }
-        currentTurnIdx = nextIdx;
-        if (gameState.players[currentTurnIdx].id === gameState.table.leaderId) {
-            gameState.table = { cards: [], power: -1, rule: "", type: null, leaderId: -1 };
-        }
-        broadcast({ type: 'UPDATE', gameState });
-    }
-
-    function broadcast(data) { connections.forEach(c => c.send(data)); handleData(data); }
-    function log(m) { document.getElementById('log').innerText = `> ${m}`; }
-    function revealReal(s) {
-        const nc = document.getElementById('noumena-card');
-        nc.innerText = s.suit + s.label; nc.className = 'reveal';
-        if (s.suit==='♥'||s.suit==='♦') nc.style.color = 'red';
-        log("真實已顯現！遊戲結束");
-        currentTurnIdx = -1; syncUI();
+    function endGame() {
+        gameEnded = true;
+        document.getElementById('player-area').innerHTML = "<h2>遊戲結束</h2>";
+        document.getElementById('controls').style.display = 'none';
+        const realityEl = document.querySelector('.reality-hidden');
+        realityEl.innerText = `${realityCard.suit} ${realityCard.rank}`;
+        realityEl.style.color = '#2ecc71';
+        log(`牌局最終揭曉！真實是：${realityCard.suit} ${realityCard.rank}`);
+        log(`排名：${winners.join(' -> ')}`);
     }
 </script>
+
 </body>
 </html>
