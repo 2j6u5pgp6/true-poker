@@ -2,137 +2,178 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <title>真實大老二 - 數位試煉場</title>
+    <title>真實大老二 - 數位實作版</title>
     <style>
-        :root { --primary: #2c3e50; --gold: #d4af37; --success: #27ae60; --fail: #c0392b; }
-        body { font-family: sans-serif; background: #f0f2f5; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        .game-container { background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); max-width: 600px; width: 100%; }
-        h1 { color: var(--primary); text-align: center; border-bottom: 2px solid var(--gold); }
-        .setup, .play-area { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
-        .card-input { display: flex; gap: 10px; margin-bottom: 10px; }
-        select, input, button { padding: 10px; border-radius: 5px; border: 1px solid #ccc; }
-        button { cursor: pointer; background: var(--primary); color: white; transition: 0.3s; }
-        button:hover { opacity: 0.8; }
-        #log { height: 150px; overflow-y: auto; background: #222; color: #0f0; padding: 10px; font-family: monospace; font-size: 0.9rem; border-radius: 5px; }
-        .status-dot { width: 15px; height: 15px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-        .truth-hidden { background: var(--primary); color: white; padding: 10px; text-align: center; font-weight: bold; border: 2px dashed var(--gold); }
+        :root { --bg: #1a1a1a; --card-bg: #fff; --primary: #e67e22; }
+        body { font-family: "PingFang TC", "Microsoft JhengHei", sans-serif; background: var(--bg); color: white; display: flex; flex-direction: column; align-items: center; min-height: 100vh; margin: 0; padding: 20px; }
+        
+        /* 遊戲區域佈局 */
+        .game-board { width: 100%; max-width: 900px; display: grid; grid-template-columns: 1fr 300px; gap: 20px; }
+        
+        /* 真實與日誌 */
+        .status-panel { background: #2c3e50; padding: 20px; border-radius: 12px; border: 2px solid var(--primary); }
+        .truth-zone { background: #000; height: 120px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 20px; border: 1px dashed var(--primary); color: var(--primary); }
+        #log { height: 300px; overflow-y: auto; background: #000; padding: 10px; font-family: monospace; font-size: 0.85rem; color: #00ff00; border-radius: 4px; }
+
+        /* 手牌區 */
+        .hand-area { background: #222; padding: 20px; border-radius: 12px; }
+        .cards-container { display: flex; flex-wrap: wrap; gap: 10px; min-height: 150px; }
+        .card { width: 60px; height: 90px; background: white; color: black; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: bold; font-size: 1.2rem; cursor: pointer; transition: 0.2s; position: relative; border: 2px solid transparent; }
+        .card.selected { transform: translateY(-15px); border-color: var(--primary); box-shadow: 0 0 15px var(--primary); }
+        .card.red { color: #e74c3c; }
+
+        /* 操作區 */
+        .controls { margin-top: 20px; display: flex; gap: 10px; align-items: center; background: #333; padding: 15px; border-radius: 8px; }
+        button { background: var(--primary); border: none; padding: 10px 20px; color: white; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:disabled { background: #555; }
+        select { padding: 10px; border-radius: 4px; }
     </style>
 </head>
 <body>
 
-<div class="game-container">
-    <h1>真實大老二：系統介面</h1>
-    
-    <div class="truth-hidden" id="truth-display">「真實」已隱藏於範疇之後</div>
+    <h1>真實大老二：數位試煉</h1>
 
-    <div class="setup">
-        <label>輸入玩家人數 (n): </label>
-        <input type="number" id="player-count" value="4" min="2" max="10">
-        <button onclick="initGame()">重新開始新局</button>
-    </div>
+    <div class="game-board">
+        <div class="main-play">
+            <div class="hand-area">
+                <h3>你的手牌 (玩家 1)</h3>
+                <div id="my-hand" class="cards-container"></div>
+            </div>
 
-    <div class="play-area">
-        <h3>出牌與立法</h3>
-        <div class="card-input">
-            <select id="suit">
-                <option value="♠">♠ 黑桃</option>
-                <option value="♥">♥ 紅心</option>
-                <option value="♦">♦ 方塊</option>
-                <option value="♣">♣ 梅花</option>
-            </select>
-            <input type="number" id="rank" placeholder="點數(1-13)" min="1" max="13">
+            <div class="controls">
+                <span>選擇立法：</span>
+                <select id="logic-select">
+                    <option value="proximity">數值鄰近 (鄰近者強)</option>
+                    <option value="suit">花色一致 (點數大者勝)</option>
+                </select>
+                <button id="btn-play" onclick="playCard()">提交立法出牌</button>
+                <button id="btn-pass" style="background:#555" onclick="passTurn()">PASS</button>
+            </div>
+            
+            <div style="margin-top: 15px;">
+                人數: <input type="number" id="n-players" value="4" style="width: 40px;">
+                <button onclick="initGame()">重新開局</button>
+            </div>
         </div>
-        <div class="card-input">
-            <select id="logic">
-                <option value="proximity">立法：數值鄰近 (越近越強)</option>
-                <option value="exact">立法：花色一致 (點數大者勝)</option>
-            </select>
-            <button onclick="submitPlay()" style="background: var(--success);">提交立法判斷</button>
-        </div>
-        <p id="chance-text">剩餘嘗試機會：2</p>
-    </div>
 
-    <div id="log">系統日誌：等待開局...</div>
-    
-    <button onclick="revealTruth()" style="margin-top:20px; background: #7f8c8d;">終局：翻開真實</button>
-</div>
+        <div class="status-panel">
+            <div id="truth-box" class="truth-zone">？ 真實 ？</div>
+            <div id="log">系統啟動中...</div>
+            <button onclick="revealTruth()" style="width:100%; margin-top:10px; background:#c0392b;">揭開真相</button>
+        </div>
+    </div>
 
 <script>
     let truth = null;
+    let hand = [];
+    let selectedIdx = -1;
     let attempts = 2;
     const suits = ['♠', '♥', '♦', '♣'];
-    const logEl = document.getElementById('log');
+    const suitNames = {'♠': 'black', '♥': 'red', '♦': 'red', '♣': 'black'};
 
     function addLog(msg, color = "#0f0") {
-        logEl.innerHTML += `<div style="color:${color}">> ${msg}</div>`;
-        logEl.scrollTop = logEl.scrollHeight;
+        const log = document.getElementById('log');
+        log.innerHTML += `<div style="color:${color}">> ${msg}</div>`;
+        log.scrollTop = log.scrollHeight;
     }
 
     function initGame() {
-        const n = document.getElementById('player-count').value;
-        const deckSize = 51;
-        const perPlayer = Math.floor(deckSize / n);
+        // 1. 生成牌組並取出「真實」
+        let deck = [];
+        for (let s of suits) {
+            for (let r = 1; r <= 13; r++) deck.push({s, r});
+        }
         
-        // 隨機產生「真實」
-        truth = {
-            suit: suits[Math.floor(Math.random() * 4)],
-            rank: Math.floor(Math.random() * 13) + 1
-        };
+        // 隨機抽走一張作為真實
+        const tIdx = Math.floor(Math.random() * deck.length);
+        truth = deck.splice(tIdx, 1)[0];
+        
+        // 2. 分牌
+        const n = parseInt(document.getElementById('n-players').value);
+        const perPlayer = Math.floor(51 / n);
+        // 洗牌
+        deck.sort(() => Math.random() - 0.5);
+        hand = deck.slice(0, perPlayer).sort((a, b) => a.r - b.r);
         
         attempts = 2;
-        document.getElementById('chance-text').innerText = `剩餘嘗試機會：2`;
-        document.getElementById('truth-display').innerText = "「真實」已重新定義";
-        
-        addLog(`遊戲初始化：${n}名玩家。`, "white");
-        addLog(`每人分發 ${perPlayer} 張牌，餘 ${deckSize % n} 張棄置。`);
-        addLog(`莊家已抽出一張牌作為「真實」。`);
+        document.getElementById('truth-box').innerText = "？ 真實 ？";
+        addLog(`新局開始，人數：${n}。`, "white");
+        addLog(`已扣除一張隱藏牌作為「真實」。`);
+        addLog(`你分到了 ${perPlayer} 張牌。`);
+        renderHand();
     }
 
-    function submitPlay() {
-        if (!truth) return alert("請先開始新局！");
-        
-        const playRank = parseInt(document.getElementById('rank').value);
-        const playSuit = document.getElementById('suit').value;
-        const logic = document.getElementById('logic').value;
-        
-        if (isNaN(playRank) || playRank < 1 || playRank > 13) return alert("請輸入正確點數");
+    function renderHand() {
+        const container = document.getElementById('my-hand');
+        container.innerHTML = '';
+        hand.forEach((card, idx) => {
+            const div = document.createElement('div');
+            div.className = `card ${suitNames[card.s]} ${selectedIdx === idx ? 'selected' : ''}`;
+            div.innerHTML = `<span>${card.s}</span><span>${getRankName(card.r)}</span>`;
+            div.onclick = () => { selectedIdx = idx; renderHand(); };
+            container.appendChild(div);
+        });
+    }
 
-        let success = false;
+    function getRankName(r) {
+        if(r === 1) return 'A';
+        if(r === 11) return 'J';
+        if(r === 12) return 'Q';
+        if(r === 13) return 'K';
+        return r;
+    }
+
+    function playCard() {
+        if (selectedIdx === -1) { alert("請先選一張牌！"); return; }
         
+        const card = hand[selectedIdx];
+        const logic = document.getElementById('logic-select').value;
+        let success = false;
+
+        addLog(`試圖立法：${card.s}${getRankName(card.r)} (${logic === 'proximity' ? '數值鄰近' : '花色一致'})`, "#aaa");
+
+        // 判定邏輯
         if (logic === 'proximity') {
-            // 簡化邏輯：如果比上一張更靠近真實則通過 (這裡模擬單次判定)
-            // 實作：與真實距離小於等於 3 視為初步通過
-            if (Math.abs(playRank - truth.rank) <= 3) success = true;
+            // 越接近真實點數越強，這裡判定為距離 2 以內通過
+            if (Math.abs(card.r - truth.r) <= 2) success = true;
         } else {
-            // 花色必須一致
-            if (playSuit === truth.suit) success = true;
+            // 花色必須完全一致
+            if (card.s === truth.s) success = true;
         }
 
         if (success) {
-            addLog(`莊家點頭：${playSuit}${playRank} 通過「${logic}」立法！`, "#2ecc71");
-            attempts = 2; // 重設機會
+            addLog(`✅ 莊家點頭！立法通過。`, "#2ecc71");
+            hand.splice(selectedIdx, 1);
+            selectedIdx = -1;
+            attempts = 2;
+            renderHand();
+            if (hand.length === 0) addLog("🏆 你贏了！你已進入真實的懷抱。", "gold");
         } else {
             attempts--;
-            addLog(`莊家搖頭：${playSuit}${playRank} 不符合真實引力。`, "#e74c3c");
             if (attempts > 0) {
-                addLog(`理性試煉：你還有 1 次機會重新調整立法。`, "#f1c40f");
+                addLog(`❌ 莊家搖頭。不合真實。你還有 1 次機會調整。`, "#f1c40f");
             } else {
-                addLog(`最終失敗：強制 PASS。`, "#c0392b");
-                attempts = 2; 
+                addLog(`❌ 最終失敗。你必須 PASS。`, "#c0392b");
+                selectedIdx = -1;
+                attempts = 2;
+                renderHand();
             }
         }
-        document.getElementById('chance-text').innerText = `剩餘嘗試機會：${attempts}`;
+    }
+
+    function passTurn() {
+        addLog("你選擇 PASS。等待下一輪。");
+        attempts = 2;
+        selectedIdx = -1;
+        renderHand();
     }
 
     function revealTruth() {
-        if (!truth) return;
-        document.getElementById('truth-display').innerText = `真實是：${truth.suit} ${truth.rank}`;
-        addLog(`真相大白：本局的引力中心是 ${truth.suit}${truth.rank}。`, var(--gold));
+        document.getElementById('truth-box').innerText = `${truth.s} ${getRankName(truth.r)}`;
+        addLog(`真相大白：本局真實為 ${truth.s}${getRankName(truth.r)}。`, "#e67e22");
     }
 
-    // 初始化
     initGame();
 </script>
-
 </body>
 </html>
