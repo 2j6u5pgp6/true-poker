@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>真實大老二</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        :root { --gold: #d4af37; --bg: #0a0a0a; --card-bg: #eee; }
+        * { box-sizing: border-box; }
+        
+        body { 
+            background: var(--bg); color: #b8a07e; 
+            font-family: -apple-system, "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+            margin: 0; padding: 0; display: flex; flex-direction: column; 
+            height: 100vh; height: -webkit-fill-available; overflow: hidden;
+        }
+
+        /* 設置介面 */
+        .setup-overlay { 
+            position: absolute; inset: 0; background: rgba(0,0,0,0.95); 
+            display: flex; flex-direction: column; justify-content: center; 
+            align-items: center; z-index: 100; padding: 20px; text-align: center; 
+        }
+
+        /* 頂部區域 */
+        .dealer-bar { background: #000; padding: 5px; border-bottom: 2px solid #333; text-align: center; flex-shrink: 0; }
+        #noumena-card { 
+            width: 45px; height: 60px; background: #111; border: 1px solid #444; 
+            margin: 5px auto; line-height: 60px; font-size: 20px; color: transparent; 
+            border-radius: 5px; transition: 1.5s; 
+        }
+        #noumena-card.reveal { background: var(--card-bg); color: #000; border-color: var(--gold); box-shadow: 0 0 15px var(--gold); }
+
+        /* 遊戲主競技場 */
+        .arena { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: space-evenly; min-height: 0; padding: 10px; }
+        
+        #players-info { display: flex; gap: 5px; flex-wrap: wrap; justify-content: center; max-width: 100%; }
+        .player-box { 
+            border: 1px solid #333; padding: 4px 8px; background: #151515; 
+            font-size: 10px; border-radius: 4px; min-width: 60px; text-align: center;
+        }
+        .player-box.active { border-color: var(--gold); color: #fff; box-shadow: 0 0 8px var(--gold); }
+        .player-box.finished { opacity: 0.3; text-decoration: line-through; }
+
+        .table-center { 
+            width: 95%; max-width: 450px; height: 140px; border: 2px solid #222; 
+            border-radius: 70px; display: flex; flex-direction: column; 
+            align-items: center; justify-content: center; background: radial-gradient(circle, #1a1a1a 0%, #000 100%);
+        }
+
+        /* 卡牌樣式 */
+        .card { 
+            width: 35px; height: 50px; background: var(--card-bg); color: #000; 
+            border-radius: 4px; display: inline-block; margin: 2px; 
+            line-height: 50px; font-weight: bold; font-size: 14px; text-align: center; border: 1px solid #888; 
+        }
+        .card.red { color: #c00; }
+
+        /* 手牌區域 - 手機版重點優化 */
+        .hand-zone { background: #111; padding: 10px; border-top: 2px solid #333; flex-shrink: 0; }
+        #my-hand { 
+            display: flex; flex-wrap: wrap; justify-content: center; 
+            gap: 4px; max-height: 120px; overflow-y: auto; padding-bottom: 5px;
+        }
+        .my-card { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+        .my-card.selected { border: 2px solid var(--gold); transform: translateY(-8px); background: #fff; }
+
+        /* 控制按鈕 */
+        .controls { display: flex; justify-content: center; gap: 6px; padding: 5px 0; }
+        button { 
+            background: #1a1a1a; color: var(--gold); border: 1px solid #444; 
+            padding: 10px 12px; cursor: pointer; border-radius: 5px; font-size: 13px; font-weight: bold;
+        }
+        button:active { background: var(--gold); color: #000; }
+        button:disabled { opacity: 0.2; }
+
+        #log { height: 60px; overflow-y: scroll; background: #000; padding: 8px; font-size: 10px; color: #666; border-top: 1px solid #222; }
+
+        /* 手機版尺寸微調 */
+        @media (max-width: 480px) {
+            .table-center { height: 120px; }
+            .card { width: 32px; height: 46px; line-height: 46px; font-size: 12px; }
+            button { padding: 12px 10px; font-size: 12px; flex: 1; }
+            #display-id { font-size: 14px; word-break: break-all; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="setup-screen" class="setup-overlay">
+    <h2 style="color:var(--gold); margin-bottom: 5px;">真實大老二</h2>
+    <p style="font-size: 12px; margin-bottom: 20px;">跨裝置多人在線版</p>
+    <div id="init-btns">
+        <button onclick="initHost()">創立房間 (房長)</button><br><br>
+        <button onclick="showJoinInput()">加入房間 (玩家)</button>
+    </div>
+    <div id="host-zone" style="display:none;">
+        <p>房長 ID (點擊複製):<br> <b id="display-id" style="color:var(--gold); cursor:pointer;" onclick="copyID()">正在生成...</b></p>
+        <p style="font-size: 12px;">已連線：<span id="peer-count">0</span> 人</p>
+        <button onclick="startMultiplayerGame()" id="start-btn" disabled>等待玩家...</button>
+    </div>
+    <div id="join-zone" style="display:none;">
+        <input type="text" id="join-id" placeholder="貼上房長 ID" style="padding:12px; width:80%; max-width:250px; margin-bottom:15px; background:#000; color:#fff; border:1px solid #444;">
+        <button onclick="connectToHost()">確認連線</button>
+    </div>
+</div>
+
+<div class="dealer-bar">
+    <div id="noumena-card">?</div>
+    <div style="font-size:10px; opacity:0.5;">真實</div>
+</div>
+
+<div class="arena">
+    <div id="players-info"></div>
+    <div class="table-center">
+        <div id="table-cards"></div>
+        <div id="table-info" style="font-size:11px; color:var(--gold); margin-top:5px;">等待開局</div>
+    </div>
+</div>
+
+<div id="log"></div>
+
+<div class="hand-zone">
+    <div id="my-hand"></div>
+    <div class="controls">
+        <button id="btn-dist" onclick="sendAction('PLAY', 'DIST')" disabled>數值鄰近</button>
+        <button id="btn-suit" onclick="sendAction('PLAY', 'SUIT')" disabled>花色一致</button>
+        <button id="btn-pass" onclick="sendAction('PASS')" disabled>PASS</button>
+    </div>
+    <div id="status-indicator" style="text-align:center; font-size:11px; margin-top:5px; color:var(--gold)"></div>
+</div>
+
+<script>
+    // 核心遊戲邏輯 (與前版一致，但增加了全員完賽才顯現的判斷)
+    const SUITS = ['♠','♥','♦','♣'], VALUES = [1,2,3,4,5,6,7,8,9,10,11,12,13];
+    let peer, conn, connections = [], isHost = false;
+    let myId, myCards = [], currentTurnIdx = 0, selectedIdxs = [];
+    let gameState = { players: [], table: { cards: [], power: -1, rule: "", type: null, leaderId: -1 }, secret: null };
+
+    function initHost() {
+        isHost = true;
+        peer = new Peer();
+        peer.on('open', id => {
+            document.getElementById('display-id').innerText = id;
+            document.getElementById('init-btns').style.display = 'none';
+            document.getElementById('host-zone').style.display = 'block';
+        });
+        peer.on('connection', c => {
+            connections.push(c);
+            document.getElementById('peer-count').innerText = connections.length;
+            document.getElementById('start-btn').disabled = false;
+            document.getElementById('start-btn').innerText = "開始遊戲";
+            c.on('data', data => handleData(data, c));
+        });
+    }
+
+    function showJoinInput() {
+        document.getElementById('init-btns').style.display = 'none';
+        document.getElementById('join-zone').style.display = 'block';
+    }
+
+    function connectToHost() {
+        const hostId = document.getElementById('join-id').value;
+        peer = new Peer();
+        peer.on('open', id => {
+            myId = id;
+            conn = peer.connect(hostId);
+            conn.on('open', () => {
+                document.getElementById('setup-screen').innerHTML = "<h3>連線成功</h3><p>等待房長發牌...</p>";
+                conn.on('data', data => handleData(data));
+            });
+        });
+    }
+
+    function startMultiplayerGame() {
+        let deck = [];
+        SUITS.forEach(s => VALUES.forEach(v => deck.push({val:v, suit:s, label:v===1?'A':v===11?'J':v===12?'Q':v===13?'K':v})));
+        const sIdx = Math.floor(Math.random() * deck.length);
+        gameState.secret = deck.splice(sIdx, 1)[0];
+        deck.sort(() => Math.random() - 0.5);
+
+        const n = connections.length + 1;
+        const per = Math.floor(51 / n);
+        gameState.players = [{ id: peer.id, name: "房長", cards: deck.splice(0, per).sort((a,b)=>a.val-b.val), finished: false }];
+        
+        connections.forEach((c, i) => {
+            const pCards = deck.splice(0, per).sort((a,b)=>a.val-b.val);
+            gameState.players.push({ id: c.peer, name: `玩家 ${i+1}`, cards: pCards, finished: false });
+            c.send({ type: 'INIT', gameState, yourId: c.peer });
+        });
+
+        broadcast({ type: 'UPDATE', gameState });
+        document.getElementById('setup-screen').style.display = 'none';
+        syncUI();
+    }
+
+    function handleData(data, fromConn) {
+        if (data.type === 'INIT') { gameState = data.gameState; myId = data.yourId; document.getElementById('setup-screen').style.display = 'none'; syncUI(); }
+        if (data.type === 'UPDATE') { gameState = data.gameState; syncUI(); }
+        if (data.type === 'PLAY' && isHost) autoJudge(data);
+        if (data.type === 'PASS' && isHost) nextTurn();
+        if (data.type === 'FAIL') log("判定失敗，請嘗試其他牌型或規則。");
+        if (data.type === 'LOG') log(data.msg);
+        if (data.type === 'REVEAL') revealNoumena(data.secret);
+    }
+
+    function autoJudge(data) {
+        const player = gameState.players[currentTurnIdx];
+        const power = calculatePower(data.cards, data.rule, gameState.secret);
+        const mType = getMoveType(data.cards);
+        const isTypeOk = mType && (!gameState.table.type || mType === gameState.table.type);
+        
+        if (isTypeOk && power > gameState.table.power) {
+            gameState.table = { cards: data.cards, power: power, rule: data.rule, type: mType, leaderId: player.id };
+            player.cards = player.cards.filter(c => !data.cards.some(dc => dc.val === c.val && dc.suit === c.suit));
+            broadcast({ type: 'LOG', msg: `${player.name} 成功出牌` });
+            
+            if (player.cards.length === 0) player.finished = true;
+            
+            if (gameState.players.every(p => p.finished)) {
+                broadcast({ type: 'REVEAL', secret: gameState.secret });
+            } else {
+                nextTurn();
+            }
+        } else {
+            const target = connections.find(c => c.peer === player.id);
+            if (target) target.send({ type: 'FAIL' }); else if (isHost) handleData({ type: 'FAIL' });
+        }
+    }
+
+    function calculatePower(cards, rule, secret) {
+        if (rule === 'DIST') return cards.reduce((acc, c) => acc + (14 - Math.abs(c.val - secret.val)), 0) / cards.length;
+        if (rule === 'SUIT') return cards.every(c => c.suit === secret.suit) ? 100 + Math.max(...cards.map(c => c.val)) : -1;
+        return -1;
+    }
+
+    function getMoveType(cards) {
+        if (cards.length === 1) return '單張';
+        const isSame = cards.every(c => c.val === cards[0].val);
+        if (cards.length === 2 && isSame) return '對子';
+        if (cards.length === 3 && isSame) return '三條';
+        if (cards.length === 4 && isSame) return '鐵支';
+        return null;
+    }
+
+    function syncUI() {
+        const myActualId = isHost ? peer.id : myId;
+        const me = gameState.players.find(p => p.id === myActualId);
+        if (!me) return;
+        myCards = me.cards;
+        const isMyTurn = gameState.players[currentTurnIdx]?.id === myActualId;
+        
+        document.getElementById('btn-dist').disabled = !isMyTurn || me.finished;
+        document.getElementById('btn-suit').disabled = !isMyTurn || me.finished;
+        document.getElementById('btn-pass').disabled = !isMyTurn || me.finished || gameState.table.leaderId === -1;
+        document.getElementById('status-indicator').innerText = me.finished ? "完賽觀察中" : (isMyTurn ? "★ 你的回合" : "等候他人...");
+
+        renderHand();
+        document.getElementById('players-info').innerHTML = gameState.players.map((p, i) => `
+            <div class="player-box ${currentTurnIdx===i?'active':''} ${p.finished?'finished':''}">
+                ${p.name}: ${p.cards.length}
+            </div>
+        `).join('');
+        document.getElementById('table-cards').innerHTML = gameState.table.cards.map(c => `<div class="card ${c.suit==='♥'||c.suit==='♦'?'red':''}">${c.suit}${c.label}</div>`).join('');
+        document.getElementById('table-info').innerText = gameState.table.type ? `${gameState.table.type} | ${gameState.table.rule}` : "首家定義牌型";
+    }
+
+    function renderHand() {
+        document.getElementById('my-hand').innerHTML = myCards.map((c, i) => `
+            <div class="card my-card ${selectedIdxs.includes(i)?'selected':''} ${c.suit==='♥'||c.suit==='♦'?'red':''}" 
+            onclick="toggleCard(${i})">${c.suit}${c.label}</div>`).join('');
+    }
+
+    function toggleCard(i) {
+        if (selectedIdxs.includes(i)) selectedIdxs = selectedIdxs.filter(x => x !== i); else selectedIdxs.push(i);
+        renderHand();
+    }
+
+    function sendAction(type, rule) {
+        const sel = selectedIdxs.map(i => myCards[i]);
+        const msg = { type, cards: sel, rule, peerId: isHost ? peer.id : myId };
+        if (isHost) { if(type==='PLAY') autoJudge(msg); else nextTurn(); } else conn.send(msg);
+        selectedIdxs = [];
+    }
+
+    function nextTurn() {
+        let nextIdx = (currentTurnIdx + 1) % gameState.players.length;
+        let startIdx = nextIdx;
+        while (gameState.players[nextIdx].finished) {
+            nextIdx = (nextIdx + 1) % gameState.players.length;
+            if (nextIdx === startIdx) break;
+        }
+        currentTurnIdx = nextIdx;
+        if (gameState.players[currentTurnIdx].id === gameState.table.leaderId) {
+            gameState.table = { cards: [], power: -1, rule: "", type: null, leaderId: -1 };
+        }
+        broadcast({ type: 'UPDATE', gameState });
+    }
+
+    function broadcast(data) { connections.forEach(c => c.send(data)); handleData(data); }
+    function log(m) { const l = document.getElementById('log'); l.innerHTML = `<div>> ${m}</div>` + l.innerHTML; }
+    
+    function revealNoumena(s) {
+        const nc = document.getElementById('noumena-card');
+        nc.innerText = s.suit + s.label; nc.className = 'reveal';
+        if (s.suit==='♥'||s.suit==='♦') nc.style.color = 'red';
+        log("🌠 全員完賽，真實顯現！");
+        currentTurnIdx = -1; syncUI();
+    }
+
+    function copyID() {
+        const id = document.getElementById('display-id').innerText;
+        navigator.clipboard.writeText(id);
+        alert("ID 已複製到剪貼簿！");
+    }
+</script>
+</body>
+</html>
+<style>
+    /* 這裡只列出關鍵修改部分，其餘邏輯同上 */
+    body {
+        /* 確保內容永遠在視窗正中央 */
+        display: flex;
+        flex-direction: column;
+        justify-content: center; 
+        align-items: center;
+        background: #000; /* 背景全黑融合 Sites */
+    }
+
+    /* 限制遊戲主體最大寬度，避免電腦版橫向太散 */
+    .arena, .hand-zone, .dealer-bar {
+        width: 100%;
+        max-width: 600px; /* 電腦版會聚攏在中間，更像手機遊戲介面 */
+        margin: 0 auto;
+    }
+</style>
