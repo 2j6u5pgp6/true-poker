@@ -21,15 +21,14 @@
             flex-direction: column;
             align-items: center;
             height: 100vh;
-            overflow: hidden; /* 防止手機晃動 */
+            overflow: hidden;
         }
 
-        /* 遊戲主桌面 */
         #game-canvas {
             position: relative;
             width: 100%;
             max-width: 1000px;
-            height: 70vh;
+            height: 68vh;
             background: radial-gradient(circle, #27ae60 0%, #1a5e3a 100%);
             border: 8px solid #3e2723;
             border-radius: 40px;
@@ -41,7 +40,6 @@
             box-sizing: border-box;
         }
 
-        /* 玩家區域佈局 */
         .player-area {
             position: absolute;
             padding: 10px;
@@ -51,7 +49,6 @@
             z-index: 5;
         }
 
-        /* 電腦版位置 */
         #area-0 { bottom: 10px; width: 90%; max-width: 600px; border: 2px solid rgba(255,255,255,0.2); }
         #area-1 { right: 10px; top: 40%; transform: translateY(-50%); width: 100px; }
         #area-2 { top: 10px; width: 300px; }
@@ -63,7 +60,6 @@
             border: 2px solid var(--gold) !important;
         }
 
-        /* 牌面設計 */
         .cards-container {
             display: flex;
             justify-content: center;
@@ -96,7 +92,6 @@
         .card.suit-heart, .card.suit-diamond { color: #e74c3c; }
         .ai-card { background: linear-gradient(135deg, #2c3e50 0%, #000 100%); border: 1px solid #eee; }
 
-        /* 中央桌面 */
         #center-table {
             text-align: center;
             background: rgba(0,0,0,0.15);
@@ -110,7 +105,6 @@
             z-index: 1;
         }
 
-        /* 下方操作面板 */
         .ui-panel {
             width: 100%;
             max-width: 1000px;
@@ -127,7 +121,7 @@
         #log {
             background: #000;
             padding: 8px;
-            height: 60px;
+            height: 65px;
             overflow-y: auto;
             font-size: 11px;
             color: #aaa;
@@ -146,7 +140,6 @@
             font-size: 14px;
         }
 
-        /* 真實揭曉層 */
         .truth-reveal {
             position: absolute;
             top: 50%;
@@ -162,20 +155,14 @@
             width: 80%;
         }
 
-        /* 手機版 RWD 修改 */
         @media screen and (max-width: 600px) {
-            #game-canvas { height: 65vh; border-radius: 20px; border-width: 4px; }
+            #game-canvas { height: 60vh; border-radius: 20px; }
             .card { width: 32px; height: 48px; font-size: 12px; }
             #area-2 { top: 5px; width: 100%; }
-            #area-1 { right: 5px; top: 100px; transform: none; width: 60px; }
-            #area-3 { left: 5px; top: 100px; transform: none; width: 60px; }
-            #area-0 { bottom: 5px; padding: 5px; }
-            #center-table { width: 180px; height: 140px; }
+            #area-1 { right: 5px; top: 120px; transform: none; width: 60px; }
+            #area-3 { left: 5px; top: 120px; transform: none; width: 60px; }
             .ui-panel { grid-template-columns: 1fr; }
-            #log { height: 40px; order: 3; }
-            .btn-group { flex-direction: row; order: 1; }
-            .btn-group select { width: 40%; }
-            button { flex: 1; }
+            .btn-group { flex-direction: row; }
         }
     </style>
 </head>
@@ -190,12 +177,12 @@
 
         <div class="player-area" id="area-2">
             <div class="cards-container" id="p2-cards"></div>
-            <div style="font-size:12px">AI 2 <span id="count-2"></span></div>
+            <div style="font-size:10px">AI 2 (<span id="count-2"></span>)</div>
         </div>
 
         <div class="player-area" id="area-3">
             <div class="cards-container" id="p3-cards"></div>
-            <div style="font-size:12px">AI 3 <span id="count-3"></span></div>
+            <div style="font-size:10px">AI 3 (<span id="count-3"></span>)</div>
         </div>
 
         <div id="center-table">
@@ -206,12 +193,12 @@
 
         <div class="player-area" id="area-1">
             <div class="cards-container" id="p1-cards"></div>
-            <div style="font-size:12px">AI 1 <span id="count-1"></span></div>
+            <div style="font-size:10px">AI 1 (<span id="count-1"></span>)</div>
         </div>
 
         <div class="player-area" id="area-0">
             <div class="cards-container" id="p0-cards"></div>
-            <div style="font-size:12px">你的手牌 (已選 <span id="fail-display" style="color:red">0</span> 次違規)</div>
+            <div style="font-size:11px">玩家 (違規: <span id="fail-display" style="color:red">0</span>/2)</div>
         </div>
     </div>
 
@@ -219,16 +206,15 @@
         <div class="btn-group">
             <select id="rule-select" style="padding: 5px;">
                 <option value="proximity">數量鄰近</option>
-                <option value="suit">花色一致</option>
+                <option value="suit">花色一致 (跟隨真實)</option>
             </select>
             <button id="btn-play" onclick="playCard()" style="background: #27ae60;">出牌</button>
             <button id="btn-pass" onclick="passTurn()" style="background: #c0392b;">過</button>
         </div>
-        <div id="log">對局準備中...</div>
+        <div id="log">對局開始...</div>
     </div>
 
 <script>
-// --- 核心邏輯整合 ---
 const SUITS = ['♠', '♥', '♦', '♣'];
 const VALUES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 let deck = [], players = [[], [], [], []], truth = null;
@@ -246,7 +232,7 @@ function initGame() {
         players[i] = deck.splice(0, 12).sort((a, b) => a.v - b.v);
     }
     currentPlayer = Math.floor(Math.random() * 4);
-    log(`首攻：${currentPlayer === 0 ? '玩家(你)' : 'AI ' + currentPlayer}`);
+    log(`首攻：P${currentPlayer}。`);
     render();
     if (currentPlayer !== 0) setTimeout(aiTurn, 1000);
 }
@@ -273,12 +259,10 @@ function render() {
             container.appendChild(div);
         });
     }
-
     document.getElementById('last-played').innerHTML = lastCards.map(card => `
         <div class="card ${card.s === '♥' || card.s === '♦' ? 'suit-heart' : ''}">
             <span>${card.s}</span><span>${card.v}</span>
         </div>`).join('');
-
     document.getElementById('current-pattern').innerText = currentPattern || '等待中';
     document.getElementById('current-rule-text').innerText = currentRule ? `目前規則：${currentRule === 'proximity' ? '數量鄰近' : '花色一致'}` : '尚未決定規則';
     document.getElementById('fail-display').innerText = failCount;
@@ -305,17 +289,34 @@ function getPattern(cards) {
     return null;
 }
 
-function isValid(cards) {
+function isValid(cards, chosenRule) {
     const pattern = getPattern(cards);
     if (!pattern || (lastCards.length > 0 && pattern !== currentPattern)) return { valid: false, reason: "牌型不符" };
+    
     const getVal = (cs) => {
         const v = cs.map(c => c.v).sort((a,b) => a-b);
         return (pattern === '葫蘆' || pattern === '鐵支') ? v[2] : v[v.length - 1];
     };
+
     if (lastCards.length === 0) return { valid: true };
-    const newVal = getVal(cards), lastVal = getVal(lastCards);
-    if (currentRule === 'proximity') return { valid: Math.abs(newVal - truth.v) < Math.abs(lastVal - truth.v), reason: "不夠接近「真實」" };
-    return { valid: (cards[0].s === lastCards[0].s && newVal > lastVal), reason: "花色不同或不夠大" };
+
+    const newVal = getVal(cards);
+    const lastVal = getVal(lastCards);
+    const lastIsTruthSuit = lastCards.every(c => c.s === truth.s);
+    const newIsTruthSuit = cards.every(c => c.s === truth.s);
+
+    // 規則互壓邏輯
+    if (chosenRule === 'suit') {
+        if (!newIsTruthSuit) return { valid: false, reason: "花色必須與「真實」一致" };
+        // 如果上一家也是真實花色，則比點數
+        if (lastIsTruthSuit) return { valid: newVal > lastVal, reason: "點數必須更大" };
+        // 如果上一家不是真實花色，直接壓過 (即便點數較小)
+        return { valid: true };
+    } else {
+        // 數量鄰近規則
+        if (lastIsTruthSuit) return { valid: false, reason: "無法以鄰近規則壓過真實花色" };
+        return { valid: Math.abs(newVal - truth.v) < Math.abs(lastVal - truth.v), reason: "不夠接近「真實」點數" };
+    }
 }
 
 function playCard() {
@@ -324,15 +325,18 @@ function playCard() {
     if (selectedIdx.length === 0) return;
     const selectedCards = selectedIdx.map(i => players[0][i]);
     const pattern = getPattern(selectedCards);
+    const chosenRule = document.getElementById('rule-select').value;
 
     if (lastCards.length === 0) {
         if (!pattern) return alert("無效牌型");
-        currentRule = document.getElementById('rule-select').value;
+        currentRule = chosenRule;
         executeMove(0, selectedCards, selectedIdx, pattern);
     } else {
-        const check = isValid(selectedCards);
-        if (check.valid) executeMove(0, selectedCards, selectedIdx, currentPattern);
-        else {
+        const check = isValid(selectedCards, chosenRule);
+        if (check.valid) {
+            currentRule = chosenRule; // 玩家可以切換規則壓制
+            executeMove(0, selectedCards, selectedIdx, currentPattern);
+        } else {
             failCount++;
             log(`無效：${check.reason}`);
             if (failCount >= 2) passTurn();
@@ -344,7 +348,7 @@ function playCard() {
 function executeMove(pIdx, cards, cardIndices, pattern) {
     lastCards = [...cards]; currentPattern = pattern; lastPlayer = pIdx; failCount = 0;
     players[pIdx] = players[pIdx].filter((_, i) => !cardIndices.includes(i));
-    log(`P${pIdx} 出牌: ${pattern}`);
+    log(`P${pIdx} 使用${currentRule === 'suit'?'[花色一致]':'[數量鄰近]'}出牌`);
     if (players[pIdx].length === 0 && !winners.includes(pIdx)) winners.push(pIdx);
     checkGameOver(); render(); nextTurn();
 }
@@ -368,15 +372,19 @@ function nextTurn() {
 
 function aiTurn() {
     const hand = players[currentPlayer];
-    for (let i = 0; i < hand.length; i++) {
-        const attempt = [hand[i]];
-        if (lastCards.length === 0) {
-            currentRule = 'proximity'; executeMove(currentPlayer, attempt, [i], '單張'); return;
-        } else if (isValid(attempt).valid) {
-            executeMove(currentPlayer, attempt, [i], currentPattern); return;
+    // AI 邏輯升級：優先嘗試用真實花色壓制，若不行再試鄰近
+    const tryPlay = (rule) => {
+        for (let i = 0; i < hand.length; i++) {
+            const attempt = [hand[i]];
+            if (lastCards.length === 0) {
+                currentRule = rule; executeMove(currentPlayer, attempt, [i], '單張'); return true;
+            } else if (isValid(attempt, rule).valid) {
+                currentRule = rule; executeMove(currentPlayer, attempt, [i], currentPattern); return true;
+            }
         }
-    }
-    passTurn();
+        return false;
+    };
+    if (!tryPlay('suit')) if (!tryPlay('proximity')) passTurn();
 }
 
 function checkGameOver() {
@@ -386,7 +394,6 @@ function checkGameOver() {
         document.getElementById('truth-card-spot').innerHTML = `<span style="color:${(truth.s === '♥' || truth.s === '♦') ? '#e74c3c' : 'white'}">${truth.s}${truth.v}</span>`;
     }
 }
-
 initGame();
 </script>
 </body>
