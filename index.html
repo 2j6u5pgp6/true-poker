@@ -3,6 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <title>大老二：真實之局 - Truth Big Two</title>
+    /* 手機版專屬優化 */
+@media screen and (max-width: 600px) {
+    #game-canvas {
+        width: 100vw;
+        height: 80vh;
+        border-radius: 20px;
+        border: 4px solid #3e2723;
+        margin-top: 5px;
+    }
+
+    /* 縮小卡片尺寸以適應小螢幕 */
+    .card {
+        width: 35px;
+        height: 55px;
+        font-size: 14px;
+    }
+
+    /* 調整 AI 位置：全部排在上方，騰出中央空間 */
+    #area-2 { top: 10px; width: 100%; }
+    #area-3 { left: 5px; top: 100px; transform: none; width: 80px; }
+    #area-1 { right: 5px; top: 100px; transform: none; width: 80px; }
+    
+    /* 玩家區域置底並加大，方便手指選取 */
+    #area-0 { 
+        bottom: 10px; 
+        width: 95%; 
+        background: rgba(0,0,0,0.3);
+    }
+
+    /* 中央區域縮小 */
+    #center-table {
+        width: 200px;
+        height: 150px;
+        padding: 10px;
+    }
+
+    /* UI 面板改為垂直堆疊 */
+    .ui-panel {
+        width: 100vw;
+        grid-template-columns: 1fr;
+        gap: 5px;
+        padding: 5px;
+        position: fixed;
+        bottom: 0;
+        z-index: 1000;
+        border-radius: 0;
+    }
+
+    #log { height: 40px; font-size: 10px; }
+
+    .btn-group {
+        flex-direction: row;
+        justify-content: space-around;
+    }
+
+    button {
+        padding: 8px 15px;
+        font-size: 14px;
+    }
+
+    /* 確保選中的卡片不會被螢幕邊緣裁切 */
+    .card.selected {
+        transform: translateY(-10px) !important;
+    }
+}
+
+/* 針對極小螢幕（如 iPhone SE）的額外修正 */
+@media screen and (max-width: 380px) {
+    .card {
+        width: 30px;
+        height: 45px;
+    }
+}
     <style>
         :root {
             --table-green: #1a5e3a;
